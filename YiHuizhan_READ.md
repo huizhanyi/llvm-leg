@@ -56,5 +56,24 @@ enum {
 };
 ```
 主要文件位于LEGISelLowering.h/cpp
+### 定制SelctionDAG节点
+```
+ 28 namespace LEGISD {
+ 29 enum NodeType {
+ 30   // Start the numbering where the builtin ops and target ops leave off.
+ 31   FIRST_NUMBER = ISD::BUILTIN_OP_END,
+ 32   RET_FLAG,
+ 33   // This loads the symbol (e.g. global address) into a register.
+ 34   LOAD_SYM,
+ 35   // This loads a 32-bit immediate into a register.
+ 36   MOVEi32,
+ 37   CALL,
+ 38 };
+ 39 }
+```
+这里增加了4个Target具体的SelectionDAG节点类型。
+增加定制的SelectionDAG方法参考PPT报告的p54。
+还需要定义LEGTargetLowering::getTargetNodeName函数返回每个定制节点名字。
+另外需要在TableGen中增加节点定义。
 
 
