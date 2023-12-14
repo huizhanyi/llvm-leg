@@ -75,5 +75,11 @@ enum {
 增加定制的SelectionDAG方法参考PPT报告的p54。
 还需要定义LEGTargetLowering::getTargetNodeName函数返回每个定制节点名字。
 另外需要在TableGen中增加节点定义。
+```
+ 31 def SDT_LEGCall    : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
+ 41 def leg_call
+ 42     : SDNode<"LEGISD::CALL", SDT_LEGCall,
+ 43              [ SDNPHasChain, SDNPOptInGlue, SDNPOutGlue, SDNPVariadic ]>;
 
+```
 
