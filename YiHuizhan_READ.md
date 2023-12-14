@@ -95,5 +95,20 @@ LEGTargetLowering::LowerCall函数则是在处理函数调用时调用的函数�
 ```
  66   setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
 ```
-
+定义LowerOPCODE函数，例如LEGTargetLowering::LowerGlobalAddress
+```
+ 78 SDValue LEGTargetLowering::LowerGlobalAddress(SDValue Op, SelectionDAG& DAG) const
+```
+调用该函数
+```
+ 69 SDValue LEGTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
+ 70   switch (Op.getOpcode()) {
+ 71   default:
+ 72     llvm_unreachable("Unimplemented operand");
+ 73   case ISD::GlobalAddress:
+ 74     return LowerGlobalAddress(Op, DAG);
+ 75   }
+ 76 }
+```
+LowerOperation被调用的时机包括合法化阶段。
 
