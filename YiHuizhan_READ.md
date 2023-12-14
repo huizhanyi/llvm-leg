@@ -84,6 +84,16 @@ enum {
 ```
 定制节点能够使用在pattern匹配里。那么SelectionDAG里为什么会有定制节点呢？例如LEGTargetLowering::LowerCall生成了LEGISD::CALL节点。
 LEGTargetLowering::LowerCall函数则是在处理函数调用时调用的函数，作为目标定制实现的虚函数，可以用于生成定制节点。
-
+### Custom DAG lowering
+对特殊DAG节点做Lowering处理
+```
+ 52 LEGTargetLowering::LEGTargetLowering(LEGTargetMachine &LEGTM)
+ 53     : TargetLowering(LEGTM, new TargetLoweringObjectFileELF()),
+ 54       Subtarget(*LEGTM.getSubtargetImpl()) {
+```
+在TargetLowering类中调用setOperationAction(nodeOpcode, type, Custom)，例如
+```
+ 66   setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
+```
 
 
