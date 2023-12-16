@@ -136,4 +136,166 @@ LEGInstrInfo.td
 ```
 191 def : Pattern<(i32 (load_sym tglobaladdr:$addr)),  [(MOVi32 $addr)]>;
 ```
+使用一个例子检查编译过程
+```
+int global = 1;
+int foo(int a, int b) {
+    int result = a + b;   // r0 + r1
+    result += global;
+    return result;        // r0
+}
+```
+LLVM IR表示为
+```
+@global = global i32 1, align 4
 
+; Function Attrs: nounwind readonly
+define i32 @foo(i32 %a, i32 %b) #0 {
+entry:
+  %add = add nsw i32 %b, %a
+  %0 = load i32* @global, align 4, !tbaa !1
+  %add1 = add nsw i32 %add, %0
+  ret i32 %add1
+}
+```
+编译查看
+~/build-llvm-leg/bin/llc -march leg -debug-only=isel ex2.ll
+初始的SelectionDAG为
+```
+Initial selection DAG: BB#0 'foo:entry'
+SelectionDAG has 14 nodes:
+  0x55a9c0811340: ch = EntryToken
+
+  0x55a9c083afb0: i32 = Constant<0>
+
+  0x55a9c083b3d0: i32 = Register %R0
+
+    0x55a9c0811340: <multiple use>
+    0x55a9c083b3d0: <multiple use>
+          0x55a9c0811340: <multiple use>
+          0x55a9c083ab90: i32 = Register %vreg1
+
+        0x55a9c083ac98: i32,ch = CopyFromReg 0x55a9c0811340, 0x55a9c083ab90 [ORD=1]
+
+          0x55a9c0811340: <multiple use>
+          0x55a9c083a980: i32 = Register %vreg0
+
+        0x55a9c083aa88: i32,ch = CopyFromReg 0x55a9c0811340, 0x55a9c083a980 [ORD=1]
+
+      0x55a9c083ada0: i32 = add 0x55a9c083ac98, 0x55a9c083aa88 [ORD=2]
+
+        0x55a9c0811340: <multiple use>
+        0x55a9c083aea8: i32 = GlobalAddress<i32* @global> 0 [ORD=3]
+
+        0x55a9c083b0b8: i32 = undef
+
+      0x55a9c083b1c0: i32,ch = load 0x55a9c0811340, 0x55a9c083aea8, 0x55a9c083b0b8<LD4[@global](tbaa=<badref>)> [ORD=3]
+
+    0x55a9c083b2c8: i32 = add 0x55a9c083ada0, 0x55a9c083b1c0 [ORD=4]
+
+  0x55a9c083b4d8: ch,glue = CopyToReg 0x55a9c0811340, 0x55a9c083b3d0, 0x55a9c083b2c8 [ORD=5]
+
+    0x55a9c083b4d8: <multiple use>
+    0x55a9c083b3d0: <multiple use>
+    0x55a9c083b4d8: <multiple use>
+  0x55a9c083b5e0: ch = RetFlag 0x55a9c083b4d8, 0x55a9c083b3d0, 0x55a9c083b4d8:1 [ORD=5]
+```
+其中有GlobalAddress节点，并且类型为i32,Legalized selection DAG之后
+```
+Legalized selection DAG: BB#0 'foo:entry'
+SelectionDAG has 14 nodes:
+  0x55a9c0811340: ch = EntryToken [ID=0]
+
+  0x55a9c083b3d0: i32 = Register %R0 [ID=5]
+
+    0x55a9c0811340: <multiple use>
+    0x55a9c083b3d0: <multiple use>
+          0x55a9c0811340: <multiple use>
+          0x55a9c083ab90: i32 = Register %vreg1 [ID=2]
+
+        0x55a9c083ac98: i32,ch = CopyFromReg 0x55a9c0811340, 0x55a9c083ab90 [ORD=1] [ID=7]
+
+          0x55a9c0811340: <multiple use>
+          0x55a9c083a980: i32 = Register %vreg0 [ID=1]
+
+        0x55a9c083aa88: i32,ch = CopyFromReg 0x55a9c0811340, 0x55a9c083a980 [ORD=1] [ID=6]
+
+      0x55a9c083ada0: i32 = add 0x55a9c083ac98, 0x55a9c083aa88 [ORD=2] [ID=9]
+
+        0x55a9c0811340: <multiple use>
+          0x55a9c083afb0: i32 = TargetGlobalAddress<i32* @global> 0 [ORD=3]
+
+        0x55a9c083b6e8: i32 = LOAD_SYM 0x55a9c083afb0 [ORD=3]
+
+        0x55a9c083b0b8: i32 = undef [ID=4]
+
+      0x55a9c083b1c0: i32,ch = load 0x55a9c0811340, 0x55a9c083b6e8, 0x55a9c083b0b8<LD4[@global](tbaa=<badref>)> [ORD=3] [ID=8]
+
+    0x55a9c083b2c8: i32 = add 0x55a9c083ada0, 0x55a9c083b1c0 [ORD=4] [ID=10]
+
+  0x55a9c083b4d8: ch,glue = CopyToReg 0x55a9c0811340, 0x55a9c083b3d0, 0x55a9c083b2c8 [ORD=5] [ID=11]
+
+    0x55a9c083b4d8: <multiple use>
+    0x55a9c083b3d0: <multiple use>
+    0x55a9c083b4d8: <multiple use>
+  0x55a9c083b5e0: ch = RetFlag 0x55a9c083b4d8, 0x55a9c083b3d0, 0x55a9c083b4d8:1 [ORD=5] [ID=12]
+```
+被替换为LOAD_SYM节点类型。指令选择结束后，LOAD_SYM被替换为MOVi32
+```
+ISEL: Match complete!
+===== Instruction selection ends:
+Selected selection DAG: BB#0 'foo:entry'
+SelectionDAG has 14 nodes:
+  0x55a9c0811340: ch = EntryToken
+
+  0x55a9c083b3d0: i32 = Register %R0
+
+    0x55a9c0811340: <multiple use>
+    0x55a9c083b3d0: <multiple use>
+          0x55a9c0811340: <multiple use>
+          0x55a9c083ab90: i32 = Register %vreg1
+
+        0x55a9c083ac98: i32,ch = CopyFromReg 0x55a9c0811340, 0x55a9c083ab90 [ORD=1]
+
+          0x55a9c0811340: <multiple use>
+          0x55a9c083a980: i32 = Register %vreg0
+
+        0x55a9c083aa88: i32,ch = CopyFromReg 0x55a9c0811340, 0x55a9c083a980 [ORD=1]
+
+      0x55a9c083ada0: i32 = ADDrr 0x55a9c083ac98, 0x55a9c083aa88 [ORD=2]
+
+          0x55a9c083afb0: i32 = TargetGlobalAddress<i32* @global> 0 [ORD=3]
+
+        0x55a9c083b6e8: i32 = MOVi32 0x55a9c083afb0 [ORD=3]
+
+        0x55a9c083aea8: i32 = TargetConstant<0>
+
+        0x55a9c0811340: <multiple use>
+      0x55a9c083b1c0: i32,ch = LDR 0x55a9c083b6e8, 0x55a9c083aea8, 0x55a9c0811340<Mem:LD4[@global](tbaa=<badref>)> [ORD=3]
+
+    0x55a9c083b2c8: i32 = ADDrr 0x55a9c083ada0, 0x55a9c083b1c0 [ORD=4]
+
+  0x55a9c083b4d8: ch,glue = CopyToReg 0x55a9c0811340, 0x55a9c083b3d0, 0x55a9c083b2c8 [ORD=5]
+
+    0x55a9c083b3d0: <multiple use>
+    0x55a9c083b4d8: <multiple use>
+    0x55a9c083b4d8: <multiple use>
+  0x55a9c083b5e0: ch = RET 0x55a9c083b3d0, 0x55a9c083b4d8, 0x55a9c083b4d8:1 [ORD=5]
+```
+生成的MachineInstr为
+```
+# Machine code for function foo: SSA
+Function Live Ins: %R0 in %vreg0, %R1 in %vreg1
+
+BB#0: derived from LLVM BB %entry
+    Live Ins: %R0 %R1
+        %vreg1<def> = COPY %R1; GRRegs:%vreg1
+        %vreg0<def> = COPY %R0; GRRegs:%vreg0
+        %vreg2<def> = ADDrr %vreg1, %vreg0; GRRegs:%vreg2,%vreg1,%vreg0
+        %vreg3<def> = MOVi32 <ga:@global>; GRRegs:%vreg3
+        %vreg4<def> = LDR %vreg3<kill>, 0; mem:LD4[@global](tbaa=<badref>) GRRegs:%vreg4,%vreg3
+        %vreg5<def> = ADDrr %vreg2<kill>, %vreg4<kill>; GRRegs:%vreg5,%vreg2,%vreg4
+        %R0<def> = COPY %vreg5; GRRegs:%vreg5
+        RET %R0, %LR<imp-use>
+```
+MOVi32作为一个宏，在后面的阶段会被处理掉。
