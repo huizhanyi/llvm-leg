@@ -95,6 +95,7 @@ LEGTargetLowering::LowerCall函数则是在处理函数调用时调用的函数�
 ```
  66   setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
 ```
+这里Custom是LegalizeAction枚举类型，因此对应到合法化阶段。
 定义LowerOPCODE函数，例如LEGTargetLowering::LowerGlobalAddress
 ```
  78 SDValue LEGTargetLowering::LowerGlobalAddress(SDValue Op, SelectionDAG& DAG) const
