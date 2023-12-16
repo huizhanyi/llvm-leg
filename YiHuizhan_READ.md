@@ -112,6 +112,7 @@ LEGTargetLowering::LowerCall函数则是在处理函数调用时调用的函数�
  76 }
 ```
 LowerOperation被调用的时机包括合法化阶段。
+https://www.cnblogs.com/Five100Miles/p/12865995.html
 ```
  78 SDValue LEGTargetLowering::LowerGlobalAddress(SDValue Op, SelectionDAG& DAG) const
  79 {
@@ -123,4 +124,12 @@ LowerOperation被调用的时机包括合法化阶段。
  84   return DAG.getNode(LEGISD::LOAD_SYM, Op, VT, TargetAddr);
  85 }
 ```
-
+LOAD_SYM节点
+```
+def load_sym : SDNode<"LEGISD::LOAD_SYM", SDTIntUnaryOp>;
+```
+load_sym被用于指令模式拼配
+LEGInstrInfo.td
+```
+191 def : Pattern<(i32 (load_sym tglobaladdr:$addr)),  [(MOVi32 $addr)]>;
+```
