@@ -133,3 +133,4 @@ LEGInstrInfo.td
 ```
 191 def : Pattern<(i32 (load_sym tglobaladdr:$addr)),  [(MOVi32 $addr)]>;
 ```
+
