@@ -1,4 +1,5 @@
-~/build-llvm-leg/bin/clang -target leg-unknown-unknown -emit-llvm -S ex1.c
+~/build-llvm-leg/bin/clang -target leg-unknown-unknown -O1 -emit-llvm -S ex2.c
+~/build-llvm-leg/bin/llc -march leg -debug-only=isel ex2.ll
 
 ## Calling convention lowering
 LEGCallingConv.td生成函数，用于ISelLowering.
