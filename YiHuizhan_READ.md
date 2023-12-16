@@ -112,4 +112,15 @@ LEGTargetLowering::LowerCall函数则是在处理函数调用时调用的函数�
  76 }
 ```
 LowerOperation被调用的时机包括合法化阶段。
+```
+ 78 SDValue LEGTargetLowering::LowerGlobalAddress(SDValue Op, SelectionDAG& DAG) const
+ 79 {
+ 80   EVT VT = Op.getValueType();
+ 81   GlobalAddressSDNode *GlobalAddr = cast<GlobalAddressSDNode>(Op.getNode());
+ 82   SDValue TargetAddr =
+ 83       DAG.getTargetGlobalAddress(GlobalAddr->getGlobal(), Op, MVT::i32);
+生成定制的DAG节点类型，这种类型还要被后面指令选择节点替换
+ 84   return DAG.getNode(LEGISD::LOAD_SYM, Op, VT, TargetAddr);
+ 85 }
+```
 
