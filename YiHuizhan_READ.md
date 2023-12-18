@@ -299,3 +299,26 @@ BB#0: derived from LLVM BB %entry
         RET %R0, %LR<imp-use>
 ```
 MOVi32作为一个宏，在后面的阶段会被处理掉。
+由LEGInstrInfo::expandPostRAPseudo处理宏。寄存器分配后，仍然保留的宏指令。宏指令协助寄存器分配。
+LEGInstrInfo.cpp给出了一个例子，用于将MOVi32扩展为多条指令。
+```
+138 bool LEGInstrInfo::expandPostRAPseudo(MachineBasicBlock::iterator MI) const
+144   case LEG::MOVi32: {
+```
+这里的函数处理MOVi32后结果为
+```
+# *** IR Dump After Post-RA pseudo instruction expansion pass ***:
+# Machine code for function foo: Post SSA
+Function Live Ins: %R0 in %vreg0, %R1 in %vreg1
+
+BB#0: derived from LLVM BB %entry
+    Live Ins: %R0 %R1
+        %R0<def> = ADDrr %R1<kill>, %R0<kill>
+        %R1<def> = MOVLOi16 <ga:@global>[TF=1]
+        %R1<def> = MOVHIi16 %R1, <ga:@global>[TF=2]
+        %R1<def> = LDR %R1<kill>, 0; mem:LD4[@global](tbaa=<badref>)
+        %R0<def> = ADDrr %R0<kill>, %R1<kill>
+        RET %R0, %LR<imp-use>
+```
+MOVi32被替换为MOVLOi16和MOVHIi16两条指令。这是两条实际指令，能够直接生成汇编。
+
