@@ -2,6 +2,7 @@
 ~/build-llvm-leg/bin/llc -march leg -debug-only=isel ex2.ll
 ~/build-llvm-leg/bin/llc -march leg -print-after-all ex2.ll  -relocation-model=pic -filetype=asm -o -
 ~/build-llvm-leg/bin/llc -march leg -print-after-all ex2.ll
+~/build-llvm-leg/bin/llc -march leg -view-dag-combine1-dags ex2.ll
 ```
 ~/build-llvm-leg/bin/llc -march leg -debug-pass=Structure ex2.ll
 Pass Arguments:  -targetlibinfo -datalayout -jump-instr-table-info -targetpassconfig -no-aa -tbaa -scoped-noalias -assumption-tracker -basicaa -notti -collector-metadata -machinemoduleinfo -machine-branch-prob -jump-instr-tables -verify -verify-di -domtree -loops -loop-simplify -scalar-evolution -iv-users -loop-reduce -gc-lowering -unreachableblockelim -consthoist -partially-inline-libcalls -codegenprepare -lowerinvoke -unreachableblockelim -verify-di -stack-protector -verify -domtree -loops -branch-prob -expand-isel-pseudos -tailduplication -opt-phis -machinedomtree -slotindexes -stack-coloring -localstackalloc -dead-mi-elimination -machinedomtree -machine-loops -machinelicm -machine-cse -machinepostdomtree -machine-block-freq -machine-sink -peephole-opts -dead-mi-elimination -processimpdefs -unreachable-mbb-elimination -livevars -machinedomtree -machine-loops -phi-node-elimination -twoaddressinstruction -slotindexes -liveintervals -simple-register-coalescing -machine-block-freq -livedebugvars -livestacks -virtregmap -liveregmatrix -edge-bundles -spill-code-placement -virtregrewriter -stack-slot-coloring -machinelicm -prologepilog -machine-block-freq -branch-folder -tailduplication -machine-cp -postrapseudos -machinedomtree -machine-loops -post-RA-sched -gc-analysis -machine-block-freq -block-placement2 -stackmap-liveness -machinedomtree -machine-loops
@@ -182,6 +183,7 @@ SelectionDAGISel::runOnMachineFunction -> SelectionDAGISel::SelectAllBasicBlocks
 269       InVals.push_back(ArgIn);
 对应的这些节点在初始的DAG上面就可以看到，因此这个函数在初始到DAG转化时就被调用过。
 ```
+指令选择的最后调度阶段，生成MachineInstr表示。
 结束时仍然保留虚拟寄存器和对应物理寄存器和虚拟寄存器的关系
 ```
 *** MachineFunction at end of ISel ***
@@ -190,7 +192,9 @@ Function Live Ins: %R0 in %vreg0, %R1 in %vreg1
 
 BB#0: derived from LLVM BB %entry
     Live Ins: %R0 %R1
+拷贝%R1到%vreg1
         %vreg1<def> = COPY %R1; GRRegs:%vreg1
+拷贝%R0到%vreg0
         %vreg0<def> = COPY %R0; GRRegs:%vreg0
         %vreg2<def> = ADDrr %vreg1, %vreg0; GRRegs:%vreg2,%vreg1,%vreg0
         %vreg3<def> = MOVi32 <ga:@global>; GRRegs:%vreg3
