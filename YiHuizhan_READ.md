@@ -61,6 +61,19 @@ enum {
 };
 ```
 主要文件位于LEGISelLowering.h/cpp
+### LowerFormalArguments
+SelectionDAGISel::runOnMachineFunction -> SelectionDAGISel::SelectAllBasicBlocks (entry block) -> SelectionDAGISel::LowerArguments -> LEGTargetLowering::LowerFormalArguments
+```
+243 SDValue LEGTargetLowering::LowerFormalArguments(
+244     SDValue Chain, CallingConv::ID CallConv, bool isVarArg,
+245     const SmallVectorImpl<ISD::InputArg> &Ins, SDLoc dl, SelectionDAG &DAG,
+246     SmallVectorImpl<SDValue> &InVals) const {
+调用td文件生成的函数，确定参数的传递方式
+257   CCInfo.AnalyzeFormalArguments(Ins, CC_LEG);
+259   for (auto &VA : ArgLocs) {
+```
+
+
 ### 定制SelctionDAG节点
 ```
  28 namespace LEGISD {
