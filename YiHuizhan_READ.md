@@ -68,7 +68,7 @@ SelectionDAGISel::runOnMachineFunction -> SelectionDAGISel::SelectAllBasicBlocks
 244     SDValue Chain, CallingConv::ID CallConv, bool isVarArg,
 245     const SmallVectorImpl<ISD::InputArg> &Ins, SDLoc dl, SelectionDAG &DAG,
 246     SmallVectorImpl<SDValue> &InVals) const {
-调用td文件生成的函数，确定参数的传递方式
+调用td文件生成的函数，确定参数的传递方式。Ins是一个引用入参，记录了每个参数需要使用什么来传递。
 257   CCInfo.AnalyzeFormalArguments(Ins, CC_LEG);
 259   for (auto &VA : ArgLocs) {
 如果是寄存器传递的参数
@@ -83,7 +83,25 @@ SelectionDAGISel::runOnMachineFunction -> SelectionDAGISel::SelectAllBasicBlocks
 269       InVals.push_back(ArgIn);
 对应的这些节点在初始的DAG上面就可以看到，因此这个函数在初始到DAG转化时就被调用过。
 ```
+结束时仍然保留虚拟寄存器和对应物理寄存器和虚拟寄存器的关系
+```
+*** MachineFunction at end of ISel ***
+# Machine code for function foo: SSA
+Function Live Ins: %R0 in %vreg0, %R1 in %vreg1
 
+BB#0: derived from LLVM BB %entry
+    Live Ins: %R0 %R1
+        %vreg1<def> = COPY %R1; GRRegs:%vreg1
+        %vreg0<def> = COPY %R0; GRRegs:%vreg0
+        %vreg2<def> = ADDrr %vreg1, %vreg0; GRRegs:%vreg2,%vreg1,%vreg0
+        %vreg3<def> = MOVi32 <ga:@global>; GRRegs:%vreg3
+        %vreg4<def> = LDR %vreg3<kill>, 0; mem:LD4[@global](tbaa=<badref>) GRRegs:%vreg4,%vreg3
+        %vreg5<def> = ADDrr %vreg2<kill>, %vreg4<kill>; GRRegs:%vreg5,%vreg2,%vreg4
+        %R0<def> = COPY %vreg5; GRRegs:%vreg5
+        RET %R0, %LR<imp-use>
+
+# End machine code for function foo.
+```
 
 ### 定制SelctionDAG节点
 ```
