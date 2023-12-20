@@ -71,6 +71,17 @@ SelectionDAGISel::runOnMachineFunction -> SelectionDAGISel::SelectAllBasicBlocks
 调用td文件生成的函数，确定参数的传递方式
 257   CCInfo.AnalyzeFormalArguments(Ins, CC_LEG);
 259   for (auto &VA : ArgLocs) {
+如果是寄存器传递的参数
+260     if (VA.isRegLoc()) {
+生成虚拟寄存器
+265       const unsigned VReg = RegInfo.createVirtualRegister(&LEG::GRRegsRegClass);
+增加LiveIn信息
+266       RegInfo.addLiveIn(VA.getLocReg(), VReg);
+增加读寄存器指令
+267       SDValue ArgIn = DAG.getCopyFromReg(Chain, dl, VReg, RegVT);
+保存生成的SelectionDAG节点
+269       InVals.push_back(ArgIn);
+对应的这些节点在初始的DAG上面就可以看到，因此这个函数在初始到DAG转化时就被调用过。
 ```
 
 
