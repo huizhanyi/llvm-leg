@@ -2,7 +2,106 @@
 ~/build-llvm-leg/bin/llc -march leg -debug-only=isel ex2.ll
 ~/build-llvm-leg/bin/llc -march leg -print-after-all ex2.ll  -relocation-model=pic -filetype=asm -o -
 ~/build-llvm-leg/bin/llc -march leg -print-after-all ex2.ll
-
+```
+~/build-llvm-leg/bin/llc -march leg -debug-pass=Structure ex2.ll
+Pass Arguments:  -targetlibinfo -datalayout -jump-instr-table-info -targetpassconfig -no-aa -tbaa -scoped-noalias -assumption-tracker -basicaa -notti -collector-metadata -machinemoduleinfo -machine-branch-prob -jump-instr-tables -verify -verify-di -domtree -loops -loop-simplify -scalar-evolution -iv-users -loop-reduce -gc-lowering -unreachableblockelim -consthoist -partially-inline-libcalls -codegenprepare -lowerinvoke -unreachableblockelim -verify-di -stack-protector -verify -domtree -loops -branch-prob -expand-isel-pseudos -tailduplication -opt-phis -machinedomtree -slotindexes -stack-coloring -localstackalloc -dead-mi-elimination -machinedomtree -machine-loops -machinelicm -machine-cse -machinepostdomtree -machine-block-freq -machine-sink -peephole-opts -dead-mi-elimination -processimpdefs -unreachable-mbb-elimination -livevars -machinedomtree -machine-loops -phi-node-elimination -twoaddressinstruction -slotindexes -liveintervals -simple-register-coalescing -machine-block-freq -livedebugvars -livestacks -virtregmap -liveregmatrix -edge-bundles -spill-code-placement -virtregrewriter -stack-slot-coloring -machinelicm -prologepilog -machine-block-freq -branch-folder -tailduplication -machine-cp -postrapseudos -machinedomtree -machine-loops -post-RA-sched -gc-analysis -machine-block-freq -block-placement2 -stackmap-liveness -machinedomtree -machine-loops
+Target Library Information
+Data Layout
+Jump-Instruction Table Info
+Target Pass Configuration
+No Alias Analysis (always returns 'may' alias)
+Type-Based Alias Analysis
+Scoped NoAlias Alias Analysis
+Assumption Tracker
+Basic Alias Analysis (stateless AA impl)
+No target information
+Create Garbage Collector Module Metadata
+Machine Module Information
+Machine Branch Probability Analysis
+  ModulePass Manager
+    Jump-Instruction Tables
+    FunctionPass Manager
+      Module Verifier
+    Debug Info Verifier
+    FunctionPass Manager
+      Dominator Tree Construction
+      Natural Loop Information
+      Canonicalize natural loops
+      Scalar Evolution Analysis
+      Loop Pass Manager
+        Induction Variable Users
+        Loop Strength Reduction
+      Lower Garbage Collection Instructions
+      Remove unreachable blocks from the CFG
+      Constant Hoisting
+      Partially inline calls to library functions
+      CodeGen Prepare
+      Lower invoke and unwind, for unwindless code generators
+      Remove unreachable blocks from the CFG
+    Debug Info Verifier
+    FunctionPass Manager
+      Insert stack protectors
+      Module Verifier
+      Machine Function Analysis
+      Dominator Tree Construction
+      Natural Loop Information
+      Branch Probability Analysis
+      LEG DAG->DAG Pattern Instruction Selection
+      Expand ISel Pseudo-instructions
+      Tail Duplication
+      Optimize machine instruction PHIs
+      MachineDominator Tree Construction
+      Slot index numbering
+      Merge disjoint stack slots
+      Local Stack Slot Allocation
+      Remove dead machine instructions
+      MachineDominator Tree Construction
+      Machine Natural Loop Construction
+      Machine Loop Invariant Code Motion
+      Machine Common Subexpression Elimination
+      MachinePostDominator Tree Construction
+      Machine Block Frequency Analysis
+      Machine code sinking
+      Peephole Optimizations
+      Remove dead machine instructions
+      Process Implicit Definitions
+      Remove unreachable machine basic blocks
+      Live Variable Analysis
+      MachineDominator Tree Construction
+      Machine Natural Loop Construction
+      Eliminate PHI nodes for register allocation
+      Two-Address instruction pass
+      Slot index numbering
+      Live Interval Analysis
+      Simple Register Coalescing
+      Machine Block Frequency Analysis
+      Debug Variable Analysis
+      Live Stack Slot Analysis
+      Virtual Register Map
+      Live Register Matrix
+      Bundle Machine CFG Edges
+      Spill Code Placement Analysis
+      Greedy Register Allocator
+      Virtual Register Rewriter
+      Stack Slot Coloring
+      Machine Loop Invariant Code Motion
+      Prologue/Epilogue Insertion & Frame Finalization
+      Machine Block Frequency Analysis
+      Control Flow Optimizer
+      Tail Duplication
+      Machine Copy Propagation Pass
+      Post-RA pseudo instruction expansion pass
+      MachineDominator Tree Construction
+      Machine Natural Loop Construction
+      Post RA top-down list latency scheduler
+      Analyze Machine Code For Garbage Collection
+      Machine Block Frequency Analysis
+      Branch Probability Basic Block Placement
+      StackMap Liveness Analysis
+      MachineDominator Tree Construction
+      Machine Natural Loop Construction
+      LEG Assembly Printer
+```
 ## Calling convention lowering
 LEGCallingConv.td生成函数，用于ISelLowering.
 ```
