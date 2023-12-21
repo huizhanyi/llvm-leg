@@ -252,6 +252,9 @@ BB#0: derived from LLVM BB %entry
         %R0<def> = COPY %vreg8; GRRegs:%vreg8
         RET %R0, %LR<imp-use>
 ```
+### LowerReturn
+LEGTargetLowering::LowerReturn
+钩子函数，检查返回值outs是否能够放到返回寄存器中。如果返回假，需要完成sret-demotion。
 ### 定制SelctionDAG节点
 ```
  28 namespace LEGISD {
