@@ -175,7 +175,7 @@ SelectionDAGISel::runOnMachineFunction -> SelectionDAGISel::SelectAllBasicBlocks
 260     if (VA.isRegLoc()) {
 生成虚拟寄存器
 265       const unsigned VReg = RegInfo.createVirtualRegister(&LEG::GRRegsRegClass);
-增加LiveIn信息
+增加指定的寄存器为LiveIn
 266       RegInfo.addLiveIn(VA.getLocReg(), VReg);
 增加读寄存器指令
 267       SDValue ArgIn = DAG.getCopyFromReg(Chain, dl, VReg, RegVT);
