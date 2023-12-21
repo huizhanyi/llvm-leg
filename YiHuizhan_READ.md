@@ -162,6 +162,7 @@ enum {
 ```
 主要文件位于LEGISelLowering.h/cpp
 ### LowerFormalArguments
+根据后面的分析，主要完成对入参数据的使用，生成对寄存器的拷贝或者对栈变量的加载操作。
 SelectionDAGISel::runOnMachineFunction -> SelectionDAGISel::SelectAllBasicBlocks (entry block) -> SelectionDAGISel::LowerArguments -> LEGTargetLowering::LowerFormalArguments
 ```
 243 SDValue LEGTargetLowering::LowerFormalArguments(
