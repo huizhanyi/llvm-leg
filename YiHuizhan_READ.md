@@ -205,7 +205,28 @@ BB#0: derived from LLVM BB %entry
 
 # End machine code for function foo.
 ```
-
+对于通过栈传递的数据
+```
+这里一定时内存位置信息
+273     assert(VA.isMemLoc() &&
+274            "Can only pass arguments as either registers or via the stack");
+275
+返回栈偏移
+276     const unsigned Offset = VA.getLocMemOffset();
+277
+这里处理的固定对象，栈帧中插入一个固定对象信息，返回一个负值的固定对象索引
+278     const int FI = MF.getFrameInfo()->CreateFixedObject(4, Offset, true);
+生成帧索引指针
+279     SDValue FIPtr = DAG.getFrameIndex(FI, getPointerTy());
+280
+281     assert(VA.getValVT() == MVT::i32 &&
+282            "Only support passing arguments as i32");
+生成一个加载类型SDNode，这里对应从FrameIndex位置加载数据
+283     SDValue Load = DAG.getLoad(VA.getValVT(), dl, Chain, FIPtr,
+284                                MachinePointerInfo(), false, false, false, 0);
+285
+286     InVals.push_back(Load);
+```
 ### 定制SelctionDAG节点
 ```
  28 namespace LEGISD {
