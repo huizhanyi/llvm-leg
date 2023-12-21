@@ -227,6 +227,30 @@ BB#0: derived from LLVM BB %entry
 285
 286     InVals.push_back(Load);
 ```
+```
+*** MachineFunction at end of ISel ***
+# Machine code for function foo: SSA
+这里一个数据使用了栈传递数据
+Frame Objects:
+  fi#-1: size=4, align=4, fixed, at location [SP]
+其他使用寄存器传递数据
+Function Live Ins: %R0 in %vreg0, %R1 in %vreg1, %R2 in %vreg2, %R3 in %vreg3
+
+BB#0: derived from LLVM BB %entry
+    Live Ins: %R0 %R1 %R2 %R3
+        %vreg3<def> = COPY %R3; GRRegs:%vreg3
+        %vreg2<def> = COPY %R2; GRRegs:%vreg2
+        %vreg1<def> = COPY %R1; GRRegs:%vreg1
+        %vreg0<def> = COPY %R0; GRRegs:%vreg0
+这里增加了一个LDR指令，加载栈数据到%vreg4
+        %vreg4<def> = LDR <fi#-1>, 0; mem:LD4[FixedStack-1] GRRegs:%vreg4
+        %vreg5<def> = ADDrr %vreg1, %vreg0; GRRegs:%vreg5,%vreg1,%vreg0
+        %vreg6<def> = ADDrr %vreg5<kill>, %vreg2; GRRegs:%vreg6,%vreg5,%vreg2
+        %vreg7<def> = ADDrr %vreg6<kill>, %vreg3; GRRegs:%vreg7,%vreg6,%vreg3
+        %vreg8<def> = ADDrr %vreg7<kill>, %vreg4<kill>; GRRegs:%vreg8,%vreg7,%vreg4
+        %R0<def> = COPY %vreg8; GRRegs:%vreg8
+        RET %R0, %LR<imp-use>
+```
 ### 定制SelctionDAG节点
 ```
  28 namespace LEGISD {
