@@ -253,8 +253,27 @@ BB#0: derived from LLVM BB %entry
         RET %R0, %LR<imp-use>
 ```
 ### LowerReturn
-LEGTargetLowering::LowerReturn
 钩子函数，检查返回值outs是否能够放到返回寄存器中。如果返回假，需要完成sret-demotion。
+```
+296 bool LEGTargetLowering::CanLowerReturn(
+297     CallingConv::ID CallConv, MachineFunction &MF, bool isVarArg,
+298     const SmallVectorImpl<ISD::OutputArg> &Outs, LLVMContext &Context) const {
+299   SmallVector<CCValAssign, 16> RVLocs;
+300   CCState CCInfo(CallConv, isVarArg, MF, RVLocs, Context);
+使用calling conv定义处理，如果不能通过寄存器或者栈处理，会返回false，导致返回false
+301   if (!CCInfo.CheckReturn(Outs, RetCC_LEG)) {
+302     return false;
+303   }
+变参数情况下，且Stackoffset非零情况，也返回失败
+304   if (CCInfo.getNextStackOffset() != 0 && isVarArg) {
+305     return false;
+306   }
+否则正常返回，不需要sret-demotion
+307   return true;
+308 }
+```
+
+LEGTargetLowering::LowerReturn
 ### 定制SelctionDAG节点
 ```
  28 namespace LEGISD {
