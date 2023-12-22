@@ -272,8 +272,16 @@ BB#0: derived from LLVM BB %entry
 307   return true;
 308 }
 ```
-
 LEGTargetLowering::LowerReturn
+```
+310 SDValue
+311 LEGTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
+312                                bool isVarArg,
+313                                const SmallVectorImpl<ISD::OutputArg> &Outs,
+314                                const SmallVectorImpl<SDValue> &OutVals,
+315                                SDLoc dl, SelectionDAG &DAG) const {
+```
+
 ### 定制SelctionDAG节点
 ```
  28 namespace LEGISD {
