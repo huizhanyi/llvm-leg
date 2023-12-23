@@ -280,6 +280,35 @@ LEGTargetLowering::LowerReturn
 313                                const SmallVectorImpl<ISD::OutputArg> &Outs,
 314                                const SmallVectorImpl<SDValue> &OutVals,
 315                                SDLoc dl, SelectionDAG &DAG) const {
+生成LEGISD::RET_FLAG操作数
+331   SmallVector<SDValue, 4> RetOps(1, Chain);
+332
+333   // Copy the result values into the output registers.
+334   for (unsigned i = 0, e = RVLocs.size(); i < e; ++i) {
+逐一处理每个返回值，这里只处理寄存器传递的情况
+335     CCValAssign &VA = RVLocs[i];
+336     assert(VA.isRegLoc() && "Can only return in registers!");
+337
+生成CopyToReg，将返回值拷贝到寄存器，因为只支持寄存器返回返回值
+338     Chain = DAG.getCopyToReg(Chain, dl, VA.getLocReg(), OutVals[i], Flag);
+339
+生成依赖链
+340     Flag = Chain.getValue(1);
+记录每个返回的寄存器
+341     RetOps.push_back(DAG.getRegister(VA.getLocReg(), VA.getLocVT()));
+342   }
+343
+第一个RET_FLAG是拷贝到寄存器的所有操作，表明必须要完成这些拷贝操作，才能执行返回
+344   RetOps[0] = Chain; // Update chain.
+345
+增加一个对拷贝操作的依赖
+346   // Add the flag if we have it.
+347   if (Flag.getNode()) {
+348     RetOps.push_back(Flag);
+349   }
+350
+生成返回操作节点，操作数是RetOps。
+351   return DAG.getNode(LEGISD::RET_FLAG, dl, MVT::Other, RetOps);
 ```
 
 ### 定制SelctionDAG节点
