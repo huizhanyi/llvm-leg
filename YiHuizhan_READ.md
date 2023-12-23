@@ -310,6 +310,37 @@ LEGTargetLowering::LowerReturn
 生成返回操作节点，操作数是RetOps。
 351   return DAG.getNode(LEGISD::RET_FLAG, dl, MVT::Other, RetOps);
 ```
+这里生成LEGISD::RET_FLAG DAG节点，对应节点类型在指令选择阶段会被替换为RET指令
+```
+169 let isTerminator = 1, isReturn = 1, isBarrier = 1, Uses = [LR] in {
+170   def RET : InstLEG<(outs), (ins variable_ops),
+171                     "bx lr",  [(LEGRetFlag)]> {
+172     let Inst{27-0}  = 0b0001001011111111111100011110;
+173   }
+174 }
+```
+这里发现LEGISD::RET_FLAG类型节点时，会替换为RET指令，入参这里是一个特殊的variable_ops，代表可变参数数目。前面Uses = \[LR\]表示需要使用到LR寄存器。因此指令选择结束的表示形式为
+```
+# Machine code for function foo: SSA
+Frame Objects:
+  fi#-1: size=4, align=4, fixed, at location [SP]
+Function Live Ins: %R0 in %vreg0, %R1 in %vreg1, %R2 in %vreg2, %R3 in %vreg3
+
+BB#0: derived from LLVM BB %entry
+    Live Ins: %R0 %R1 %R2 %R3
+        %vreg3<def> = COPY %R3; GRRegs:%vreg3
+        %vreg2<def> = COPY %R2; GRRegs:%vreg2
+        %vreg1<def> = COPY %R1; GRRegs:%vreg1
+        %vreg0<def> = COPY %R0; GRRegs:%vreg0
+        %vreg4<def> = LDR <fi#-1>, 0; mem:LD4[FixedStack-1] GRRegs:%vreg4
+        %vreg5<def> = ADDrr %vreg1, %vreg0; GRRegs:%vreg5,%vreg1,%vreg0
+        %vreg6<def> = ADDrr %vreg5<kill>, %vreg2; GRRegs:%vreg6,%vreg5,%vreg2
+        %vreg7<def> = ADDrr %vreg6<kill>, %vreg3; GRRegs:%vreg7,%vreg6,%vreg3
+        %vreg8<def> = ADDrr %vreg7<kill>, %vreg4<kill>; GRRegs:%vreg8,%vreg7,%vreg4
+        %R0<def> = COPY %vreg8; GRRegs:%vreg8
+        RET %R0, %LR<imp-use>
+```
+这里RET使用了%R0寄存器和%LR寄存器
 
 ### 定制SelctionDAG节点
 ```
