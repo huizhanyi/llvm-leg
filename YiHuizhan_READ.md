@@ -375,7 +375,7 @@ LEGISelLowering.cpp
 处理内存传递操作数
 150     MemOpChains.push_back(DAG.getStore(Chain, dl, Arg, PtrOff,
 151                                        MachinePointerInfo(), false, false, 0));
-输出所有栈传递操作的store操作
+输出所有栈传递操作的store操作，这里生成了一个TokenFactor DAG节点，看DAG图会生成对应栈保存参数的Store操作
 154   // Emit all stores, make sure they occur before the call.
 155   if (!MemOpChains.empty()) {
 156     Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other, MemOpChains);
@@ -386,7 +386,7 @@ LEGISelLowering.cpp
 163     Chain = DAG.getCopyToReg(Chain, dl, Reg.first, Reg.second, InFlag);
 164     InFlag = Chain.getValue(1);
 165   }
-增加调用需要保留的寄存器掩码，这里时Callee-saved寄存器
+增加调用需要保留的寄存器掩码，这里是Callee-saved寄存器
 183   // Add a register mask operand representing the call-preserved registers.
 184   const uint32_t *Mask;
 185   const TargetRegisterInfo *TRI =
