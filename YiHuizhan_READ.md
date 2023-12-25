@@ -343,8 +343,65 @@ BB#0: derived from LLVM BB %entry
 这里RET使用了%R0寄存器和%LR寄存器
 ### LowerCall
 当函数被调用时，需要调用前所有实参拷贝到正确位置，调用结束把返回值拷贝到指定的虚寄存器。整个过程由CALLSEQ_BEGIN和CALLSEQ_END节点围绕到一起。在指令选择节点这些节点变换为ADJCALLSTACKDOWN和ADJCALLSTACKUP伪指令。函数调用由LowerCall函数处理，生成恰当的SDValues链。
+LEGISelLowering.cpp
+```
+ 98 SDValue LEGTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
+ 99                                      SmallVectorImpl<SDValue> &InVals) const {
+```
+原型定义
+```
+这个hook函数用于将call操作lower到指定的DAG。调用的输出参数（传递到call的参数）通过Outs数组描述，调用返回的值用Ins数组描述。
+2324   /// This hook must be implemented to lower calls into the the specified
+2325   /// DAG. The outgoing arguments to the call are described by the Outs array,
+2326   /// and the values to be returned by the call are described by the Ins
+2327   /// array. The implementation should fill in the InVals array with legal-type
+2328   /// return values from the call, and return the resulting token chain value.
+2329   virtual SDValue
+2330     LowerCall(CallLoweringInfo &/*CLI*/,
+2331               SmallVectorImpl<SDValue> &/*InVals*/) const {
+2332     llvm_unreachable("Not Implemented");
+2333   }
+```
+```
+122   // Get the size of the outgoing arguments stack space requirement.
+123   const unsigned NumBytes = CCInfo.getNextStackOffset();
+124
+这里看CALLSEQ_START指向的数据为传递输入参数的大小。CALLSEQ_END也保存了这个值。
+125   Chain =
+126       DAG.getCALLSEQ_START(Chain, DAG.getIntPtrConstant(NumBytes, true), dl);
 
+取用来传递的寄存器和对应的参数值
+140       RegsToPass.push_back(std::make_pair(VA.getLocReg(), Arg));
+处理内存传递操作数
+150     MemOpChains.push_back(DAG.getStore(Chain, dl, Arg, PtrOff,
+151                                        MachinePointerInfo(), false, false, 0));
+输出所有栈传递操作的store操作
+154   // Emit all stores, make sure they occur before the call.
+155   if (!MemOpChains.empty()) {
+156     Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other, MemOpChains);
+157   }
+生成到寄存器的拷贝chain
+161   SDValue InFlag;
+162   for (auto &Reg : RegsToPass) {
+163     Chain = DAG.getCopyToReg(Chain, dl, Reg.first, Reg.second, InFlag);
+164     InFlag = Chain.getValue(1);
+165   }
+增加调用需要保留的寄存器掩码，这里时Callee-saved寄存器
+183   // Add a register mask operand representing the call-preserved registers.
+184   const uint32_t *Mask;
+185   const TargetRegisterInfo *TRI =
+186       getTargetMachine().getSubtargetImpl()->getRegisterInfo();
+187   Mask = TRI->getCallPreservedMask(CallConv);
+生成调用指令
+199   Chain = DAG.getNode(LEGISD::CALL, dl, NodeTys, Ops);
+生成CALLSEQ_END DAG节点
+202   Chain = DAG.getCALLSEQ_END(Chain, DAG.getIntPtrConstant(NumBytes, true),
+203                              DAG.getIntPtrConstant(0, true), InFlag, dl);
+处理Call的返回结果
+210   return LowerCallResult(Chain, InFlag, CallConv, isVarArg, Ins, dl, DAG,
+211                          InVals);
 
+```
 ### 定制SelctionDAG节点
 ```
  28 namespace LEGISD {
