@@ -664,4 +664,7 @@ BB#0: derived from LLVM BB %entry
         RET %R0, %LR<imp-use>
 ```
 MOVi32被替换为MOVLOi16和MOVHIi16两条指令。这是两条实际指令，能够直接生成汇编。
+### Frame Lowering
+emitPrologue/emitEpilogue/eliminateCallFramePseudoInstr在下面的PASS被调用，这已经完成了指令选择。
+Prologue/Epilogue Insertion & Frame Finalization
 
