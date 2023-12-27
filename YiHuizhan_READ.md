@@ -665,6 +665,123 @@ BB#0: derived from LLVM BB %entry
 ```
 MOVi32被替换为MOVLOi16和MOVHIi16两条指令。这是两条实际指令，能够直接生成汇编。
 ### Frame Lowering
+LEGFrameLowering.cpp
 emitPrologue/emitEpilogue/eliminateCallFramePseudoInstr在下面的PASS被调用，这已经完成了指令选择。
 Prologue/Epilogue Insertion & Frame Finalization
-
+```
+ 57 // Return zero if the offset fits into the instruction as an immediate,
+ 58 // or the number of the register where the offset is materialized.
+ 59 static unsigned materializeOffset(MachineFunction &MF, MachineBasicBlock &MBB,
+ 60                                   MachineBasicBlock::iterator MBBI,
+ 61                                   unsigned Offset) {
+ 62   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+ 63   DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+ 64   const uint64_t MaxSubImm = 0xfff;
+ 65   if (Offset <= MaxSubImm) {
+因为定义的SUBri和ADDri中立即数字段为12bit
+ 66     // The stack offset fits in the ADD/SUB instruction.
+ 67     return 0;
+ 68   } else {
+ 69     // The stack offset does not fit in the ADD/SUB instruction.
+ 70     // Materialize the offset using MOVLO/MOVHI.
+使用MOVLO/MOVHI指令
+偏移寄存器使用R4
+ 71     unsigned OffsetReg = LEG::R4;
+分为低16位和高16位
+ 72     unsigned OffsetLo = (unsigned)(Offset & 0xffff);
+ 73     unsigned OffsetHi = (unsigned)((Offset & 0xffff0000) >> 16);
+将低16位使用MOVLOi16移至偏移寄存器
+ 74     BuildMI(MBB, MBBI, dl, TII.get(LEG::MOVLOi16), OffsetReg)
+ 75         .addImm(OffsetLo)
+ 76         .setMIFlag(MachineInstr::FrameSetup);
+设置FrameSetup，指令用做Frame Setup的一部分
+ 77     if (OffsetHi) {
+将高16位使用MOVHIi16移至偏移寄存器
+ 78       BuildMI(MBB, MBBI, dl, TII.get(LEG::MOVHIi16), OffsetReg)
+ 79           .addReg(OffsetReg)
+ 80           .addImm(OffsetHi)
+设置FrameSetup，指令用做Frame Setup的一部分
+ 81           .setMIFlag(MachineInstr::FrameSetup);
+ 82     }
+返回偏移寄存器
+ 83     return OffsetReg;
+ 84   }
+ 85 }
+```
+emitPrologue函数
+```
+ 87 void LEGFrameLowering::emitPrologue(MachineFunction &MF) const {
+ 88   // Compute the stack size, to determine if we need a prologue at all.
+ 89   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+ 90   MachineBasicBlock &MBB = MF.front();
+ 91   MachineBasicBlock::iterator MBBI = MBB.begin();
+ 92   DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+ 93   uint64_t StackSize = computeStackSize(MF);
+ 94   if (!StackSize) {
+ 95     return;
+ 96   }
+ 97
+ 98   // Adjust the stack pointer.
+ 99   unsigned StackReg = LEG::SP;
+返回栈大小
+100   unsigned OffsetReg = materializeOffset(MF, MBB, MBBI, (unsigned)StackSize);
+如果需要寄存器
+101   if (OffsetReg) {
+使用栈寄存器减去偏移寄存器
+102     BuildMI(MBB, MBBI, dl, TII.get(LEG::SUBrr), StackReg)
+103         .addReg(StackReg)
+104         .addReg(OffsetReg)
+105         .setMIFlag(MachineInstr::FrameSetup);
+106   } else {
+否则直接使用立即数表示偏移，设置指令的MachineInstr::FrameSetup标志
+107     BuildMI(MBB, MBBI, dl, TII.get(LEG::SUBri), StackReg)
+108         .addReg(StackReg)
+109         .addImm(StackSize)
+110         .setMIFlag(MachineInstr::FrameSetup);
+111   }
+112 }
+```
+emitEpilogue
+```
+114 void LEGFrameLowering::emitEpilogue(MachineFunction &MF,
+115                                     MachineBasicBlock &MBB) const {
+116   // Compute the stack size, to determine if we need an epilogue at all.
+117   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+118   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
+119   DebugLoc dl = MBBI->getDebugLoc();
+120   uint64_t StackSize = computeStackSize(MF);
+121   if (!StackSize) {
+122     return;
+123   }
+124
+125   // Restore the stack pointer to what it was at the beginning of the function.
+126   unsigned StackReg = LEG::SP;
+127   unsigned OffsetReg = materializeOffset(MF, MBB, MBBI, (unsigned)StackSize);
+128   if (OffsetReg) {
+和prolog的处理相反，使用加法指令
+129     BuildMI(MBB, MBBI, dl, TII.get(LEG::ADDrr), StackReg)
+130         .addReg(StackReg)
+131         .addReg(OffsetReg)
+132         .setMIFlag(MachineInstr::FrameSetup);
+133   } else {
+134     BuildMI(MBB, MBBI, dl, TII.get(LEG::ADDri), StackReg)
+135         .addReg(StackReg)
+136         .addImm(StackSize)
+137         .setMIFlag(MachineInstr::FrameSetup);
+138   }
+139 }
+```
+简单删除ADJCALLSTACKDOWN, ADJCALLSTACKUP伪指令
+```
+141 // This function eliminates ADJCALLSTACKDOWN, ADJCALLSTACKUP pseudo
+142 // instructions
+143 void LEGFrameLowering::eliminateCallFramePseudoInstr(
+144     MachineFunction &MF, MachineBasicBlock &MBB,
+145     MachineBasicBlock::iterator I) const {
+146   if (I->getOpcode() == LEG::ADJCALLSTACKUP ||
+147       I->getOpcode() == LEG::ADJCALLSTACKDOWN) {
+148     MBB.erase(I);
+149   }
+150   return;
+151 }
+```
