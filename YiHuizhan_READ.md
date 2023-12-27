@@ -785,3 +785,43 @@ emitEpilogue
 150   return;
 151 }
 ```
+如下代码
+```
+define i32 @bar(i32 %a) #0 {
+entry:
+  %mul = mul nsw i32 %a, 3
+  %call = tail call i32 @foo(i32 %a, i32 %mul, i32 %mul, i32 %mul, i32 %mul, i32 %a) #2
+  ret i32 %call
+}
+```
+After Prologue/Epilogue Insertion & Frame Finalization 处理后生成
+```
+# Machine code for function bar: Post SSA
+Frame Objects:
+  fi#0: size=4, align=4, at location [SP-4]
+Function Live Ins: %R0 in %vreg0
+
+BB#0: derived from LLVM BB %entry
+    Live Ins: %R0 %R4
+这里是emitPrologue生成
+        %SP<def> = SUBri %SP, 4; flags: FrameSetup
+这里用来保存callee-saved寄存器
+        STR %R4<kill>, %SP, 0
+        %R1<def> = MOVLOi16 3
+        %R1<def> = MUL %R0, %R1<kill>
+        %R2<def> = ADDri %SP, 4
+这里用来保存输出参数
+        STR %R0, %R2<kill>, 0; mem:ST4[<unknown>]
+        STR %R1, %SP, 0; mem:ST4[<unknown>]
+        %R4<def> = MOVi32 <ga:@foo>
+        %R2<def> = COPY %R1
+        %R3<def> = COPY %R1
+        BL %R4<kill>, <regmask>, %LR<imp-def>, %SP<imp-use>, %R0<imp-use>, %R1<imp-use>, %R2<imp-use>, %R3<imp-use>, %SP<imp-def>, %R0<imp-def>
+        %R4<def> = LDR %SP, 0
+这里是emitEpilogue生成
+        %SP<def> = ADDri %SP, 4; flags: FrameSetup
+        RET %R0, %LR<imp-use>
+
+# End machine code for function bar.
+```
+809行和815行的保存位置冲突，应该是处理有问题。
