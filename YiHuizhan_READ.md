@@ -806,13 +806,13 @@ BB#0: derived from LLVM BB %entry
 这里是emitPrologue生成
         %SP<def> = SUBri %SP, 4; flags: FrameSetup
 这里用来保存callee-saved寄存器
-        STR %R4<kill>, %SP, 0
+*>        STR %R4<kill>, %SP, 0
         %R1<def> = MOVLOi16 3
         %R1<def> = MUL %R0, %R1<kill>
         %R2<def> = ADDri %SP, 4
 这里用来保存输出参数
         STR %R0, %R2<kill>, 0; mem:ST4[<unknown>]
-        STR %R1, %SP, 0; mem:ST4[<unknown>]
+*>        STR %R1, %SP, 0; mem:ST4[<unknown>]
         %R4<def> = MOVi32 <ga:@foo>
         %R2<def> = COPY %R1
         %R3<def> = COPY %R1
@@ -824,4 +824,5 @@ BB#0: derived from LLVM BB %entry
 
 # End machine code for function bar.
 ```
-809行和815行的保存位置冲突，应该是处理有问题。
+*>保存位置冲突，后面的保存把前面的位置覆盖掉了，所以结尾的LDR恢复%R4恢复的结果应该有问题。
+
