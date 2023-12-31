@@ -857,6 +857,48 @@ BB#0: derived from LLVM BB %entry
 提供SelectCode函数
  50 };
 ```
+#### SelectAddr函数及ComplexPattern
+首先检查SelectAddr函数，这个函数定义在类LEGDAGToDAGISel中，被tblgen的ComplexPattern调用。原因是LEGGenDAGISel.inc头文件中包含了ComplexPattern生成的函数CheckComplexPattern，该模式定义时，第三个字段是
+```
+class ComplexPattern<ValueType ty, int numops, string fn,
+                     list<SDNode> roots = [], list<SDNodeProperty> props = []> {
+
+def addr : ComplexPattern<iPTR, 2, "SelectAddr", [], []>;
+```
+因为ComplexPattern生成的函数CheckComplexPattern包含在类LEGDAGToDAGISel中，成为类的一个方法，而SelectAddr函数则是类的方法，因此可以直接调用SelectAddr方法。
+检查SelectAddr定义
+```
+看参数，这里第一个参数是对应的地址，第二个是Base地址，第三个代表偏移？
+bool LEGDAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base, SDValue &Offset) {
+如果Addr是一个FrameIndexSDNode类型的SelectionDAG节点
+  if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
+根据节点类型，返回基地址和偏移地址
+    Base = CurDAG->getTargetFrameIndex(FIN->getIndex(),
+                                       getTargetLowering()->getPointerTy());
+偏移地址是一个常量
+    Offset = CurDAG->getTargetConstant(0, MVT::i32);
+    return true;
+  }
+下面的情况返回false，没有取到基址和偏移
+  if (Addr.getOpcode() == ISD::TargetExternalSymbol ||
+      Addr.getOpcode() == ISD::TargetGlobalAddress ||
+      Addr.getOpcode() == ISD::TargetGlobalTLSAddress) {
+    return false; // direct calls.
+  }
+缺省情况下，直接使用Addr作为基地址
+  Base = Addr;
+使用常量0作为偏移
+  Offset = CurDAG->getTargetConstant(0, MVT::i32);
+返回真
+  return true;
+}
+```
+这里addr定义为ComplexPattern，addr被用于指令定义的模式匹配定义里。
+```
+def addr : ComplexPattern<iPTR, 2, "SelectAddr", [], []>;
+```
+根据这里的定义，这里会生成对应的CheckComplexPattern函数，这个函数应该用于对应的模式匹配。模式为iPTR，2个操作数，用特定的函数SelectAddr处理。
+
 
 
 
