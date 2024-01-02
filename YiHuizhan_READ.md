@@ -899,6 +899,53 @@ def addr : ComplexPattern<iPTR, 2, "SelectAddr", [], []>;
 ```
 根据这里的定义，这里会生成对应的CheckComplexPattern函数，这个函数应该用于对应的模式匹配。模式为iPTR，2个操作数，用特定的函数SelectAddr处理。
 
+#### select函数
+```
+ 99 SDNode *LEGDAGToDAGISel::Select(SDNode *N) {
+100   switch (N->getOpcode()) {
+特别处理ISD::Constant
+101   case ISD::Constant:
+102     return SelectMoveImmediate(N);
+103   }
+104
+其他DAG节点类型使用自动生成的代码处理
+105   return SelectCode(N);
+106 }
+```
+对于常量ISD::Constant类型
+```
+ 71 SDNode *LEGDAGToDAGISel::SelectMoveImmediate(SDNode *N) {
+ 72   // Make sure the immediate size is supported.
+ 73   ConstantSDNode *ConstVal = cast<ConstantSDNode>(N);
+ 74   uint64_t ImmVal = ConstVal->getZExtValue();
+看后面的分析，这里的Mask应该是0xffffffff（32-bit），这里使用了36-bit,有误？
+ 75   uint64_t SupportedMask = 0xfffffffff;
+这里对于超过Mask长度的立即数由自动代码处理，似乎后面没有对应处理代码
+ 76   if ((ImmVal & SupportedMask) != ImmVal) {
+ 77     return SelectCode(N);
+ 78   }
+ 79
+ 80   // Select the low part of the immediate move.
+ 81   uint64_t LoMask = 0xffff;
+ 82   uint64_t HiMask = 0xffff0000;
+ 83   uint64_t ImmLo = (ImmVal & LoMask);
+ 84   uint64_t ImmHi = (ImmVal & HiMask);
+后续生成LEG::MOVLOi16/LEG::MOVHIi16两条指令，分别加载低16和高16位。
+ 85   SDValue ConstLo = CurDAG->getTargetConstant(ImmLo, MVT::i32);
+ 86   MachineSDNode *Move =
+ 87       CurDAG->getMachineNode(LEG::MOVLOi16, N, MVT::i32, ConstLo);
+ 88
+ 89   // Select the low part of the immediate move, if needed.
+ 90   if (ImmHi) {
+ 91     SDValue ConstHi = CurDAG->getTargetConstant(ImmHi >> 16, MVT::i32);
+ 92     Move = CurDAG->getMachineNode(LEG::MOVHIi16, N, MVT::i32, SDValue(Move, 0),
+ 93                                   ConstHi);
+ 94   }
+ 95
+ 96   return Move;
+ 97 }
+```
+
 
 
 
