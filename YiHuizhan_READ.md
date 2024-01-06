@@ -198,6 +198,20 @@ LEG有自己的TargetPassConfig定义，相应的可以定制一些pass
 ```
 addMachinePasses增加的pass一直到“StackMap Liveness Analysis”，之后就到了Printer遍。也就是之前所有的Pass都是MachineInstr表示，在Printer时才转化为MCInst表示。
 而Instruction Selection之前增加了一个MachineFunctionAnalysis遍，生成MachineFunction，管理整个代码生成过程。
+## Target调用和初始化
+llc.cpp
+```
+166 int main(int argc, char **argv) {
+
+177   InitializeAllTargets();
+178   InitializeAllTargetMCs();
+179   InitializeAllAsmPrinters();
+180   InitializeAllAsmParsers();
+```
+InitializeAllTargets -> InitializeAllTargetInfos -> LLVMInitializeLEGTargetInfo
+                    |-> LLVMInitializeLEGTarget
+InitializeAllTargetMCs -> LLVMInitializeLEGTargetMC
+InitializeAllAsmPrinters -> LLVMInitializeLEGAsmPrinter
 
 ## Calling convention lowering
 LEGCallingConv.td生成函数，用于ISelLowering.
