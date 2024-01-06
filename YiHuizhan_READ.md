@@ -138,6 +138,63 @@ lib/CodeGen/LLVMTargetMachine.cpp
 141                                             bool DisableVerify,
 142                                             AnalysisID StartAfter,
 143                                             AnalysisID StopAfter) {
+
+150   MCContext *Context = addPassesToGenerateCode(this, PM, DisableVerify,
+151                                                StartAfter, StopAfter);
+
+ 84 static MCContext *addPassesToGenerateCode(LLVMTargetMachine *TM,
+ 85                                           PassManagerBase &PM,
+ 86                                           bool DisableVerify,
+ 87                                           AnalysisID StartAfter,
+ 88                                           AnalysisID StopAfter) {
+
+ 91   TM->addAnalysisPasses(PM);
+这个LEG可以定制，目前实现没有什么内容
+ 93   // Targets may override createPassConfig to provide a target-specific
+ 94   // subclass.
+ 95   TargetPassConfig *PassConfig = TM->createPassConfig(PM);
+ 96   PassConfig->setStartStopPasses(StartAfter, StopAfter);
+LEG有自己的TargetPassConfig定义，相应的可以定制一些pass
+109   PassConfig->addISelPrepare();
+指令选择前的准备，Target可定制
+
+118   // Set up a MachineFunction for the rest of CodeGen to work on.
+119   PM.add(new MachineFunctionAnalysis(*TM));
+生成一个pass “Machine Function Analysis”,管理MachineFunction
+
+127   // Ask the target for an isel.
+128   if (PassConfig->addInstSelector())
+增加指令选择PASS，Target定制LEGDAGToDAGISel
+131   PassConfig->addMachinePasses();
+增加目标独立的postISel代码生成pass，::addxx可以由目标override
+
+176     MCInstPrinter *InstPrinter =
+177       getTarget().createMCInstPrinter(MAI.getAssemblerDialect(), MAI,
+178                                       MII, MRI, STI);
+这里间接会调用createLEGMCInstPrinter函数，生成LEGInstPrinter
+
+180     // Create a code emitter if asked to show the encoding.
+181     MCCodeEmitter *MCE = nullptr;
+182     if (Options.MCOptions.ShowMCEncoding)
+183       MCE = getTarget().createMCCodeEmitter(MII, MRI, STI, *Context);
+这里间接调用createLEGMCCodeEmitter，生成LEGMCCodeEmitter
+
+185     MCAsmBackend *MAB = getTarget().createMCAsmBackend(MRI, getTargetTriple(),
+186                                                        TargetCPU);
+这里间接调用createLEGAsmBackend，生成ELFLEGAsmBackend
+
+187     MCStreamer *S = getTarget().createAsmStreamer(
+188         *Context, Out, Options.MCOptions.AsmVerbose,
+189         Options.MCOptions.MCUseDwarfDirectory, InstPrinter, MCE, MAB,
+190         Options.MCOptions.ShowMCInst);
+这里间接调用createMCAsmStreamer，生成MCStreamer，这里把前面生成的InstPrinter, MCE, MAB,都作为入参使用
+191     AsmStreamer.reset(S);
+
+216   // Create the AsmPrinter, which takes ownership of AsmStreamer if successful.
+217   FunctionPass *Printer = getTarget().createAsmPrinter(*this, *AsmStreamer);
+这里间接生成LEGAsmPrinter，这是一个MachineFunctionPass
+224   PM.add(Printer);
+增加打印pass
 ```
 
 ## Calling convention lowering
