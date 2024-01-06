@@ -214,6 +214,69 @@ InitializeAllTargets -> InitializeAllTargetInfos -> LLVMInitializeLEGTargetInfo
 InitializeAllTargetMCs -> LLVMInitializeLEGTargetMC
 InitializeAllAsmPrinters -> LLVMInitializeLEGAsmPrinter
 ```
+TargetInfo/LEGTargetInfo.cpp
+```
+ 15 Target llvm::TheLEGTarget;
+ 16
+ 17 extern "C" void LLVMInitializeLEGTargetInfo() {
+ 18   RegisterTarget<Triple::leg> X(TheLEGTarget, "leg", "LEG");
+ 19 }
+```
+RegisterTarget在TargetRegistry登记一个Target，名称为"leg"，描述为"LEG"
+LEGTargetMachine.cpp
+```
+ 64 // Force static initialization.
+ 65 extern "C" void LLVMInitializeLEGTarget() {
+ 66   RegisterTargetMachine<LEGTargetMachine> X(TheLEGTarget);
+ 67 }
+```
+在TargetRegistry登记一个TargetMachine
+MCTargetDesc/LEGMCTargetDesc.cpp
+```
+107 extern "C" void LLVMInitializeLEGTargetMC() {
+108   // Register the MC asm info.
+109   RegisterMCAsmInfoFn X(TheLEGTarget, createLEGMCAsmInfo);
+110
+111   // Register the MC codegen info.
+112   TargetRegistry::RegisterMCCodeGenInfo(TheLEGTarget, createLEGMCCodeGenInfo);
+113
+114   // Register the MC instruction info.
+115   TargetRegistry::RegisterMCInstrInfo(TheLEGTarget, createLEGMCInstrInfo);
+116
+117   // Register the MC register info.
+118   TargetRegistry::RegisterMCRegInfo(TheLEGTarget, createLEGMCRegisterInfo);
+119
+120   // Register the MC subtarget info.
+121   TargetRegistry::RegisterMCSubtargetInfo(TheLEGTarget,
+122                                           createLEGMCSubtargetInfo);
+123
+124   // Register the MCInstPrinter
+125   TargetRegistry::RegisterMCInstPrinter(TheLEGTarget, createLEGMCInstPrinter);
+126
+127   // Register the ASM Backend.
+128   TargetRegistry::RegisterMCAsmBackend(TheLEGTarget, createLEGAsmBackend);
+129
+130   // Register the assembly streamer.
+131   TargetRegistry::RegisterAsmStreamer(TheLEGTarget, createMCAsmStreamer);
+132
+133   // Register the object streamer.
+134   TargetRegistry::RegisterMCObjectStreamer(TheLEGTarget, createMCStreamer);
+135
+136   // Register the MCCodeEmitter
+137   TargetRegistry::RegisterMCCodeEmitter(TheLEGTarget, createLEGMCCodeEmitter);
+138 }
+```
+这里调用一系列的TargetRegistry的方法注册相关处理函数。
+LEGAsmPrinter.cpp
+```
+extern "C" void LLVMInitializeLEGAsmPrinter() {
+  RegisterAsmPrinter<LEGAsmPrinter> X(TheLEGTarget);
+}
+```
+在TargetRegistry中登记类LEGAsmPrinter
+上述过程把所有目标相关的数据关联到Target,登记PASS时可以使用这些数据。
+#### 整体上看是 初始化共享的数据结构Target -> 登记PASS关联到这些数据
+
 ## Calling convention lowering
 LEGCallingConv.td生成函数，用于ISelLowering.
 ```
