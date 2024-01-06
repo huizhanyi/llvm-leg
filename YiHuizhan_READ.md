@@ -208,11 +208,12 @@ llc.cpp
 179   InitializeAllAsmPrinters();
 180   InitializeAllAsmParsers();
 ```
+```
 InitializeAllTargets -> InitializeAllTargetInfos -> LLVMInitializeLEGTargetInfo
                     |-> LLVMInitializeLEGTarget
 InitializeAllTargetMCs -> LLVMInitializeLEGTargetMC
 InitializeAllAsmPrinters -> LLVMInitializeLEGAsmPrinter
-
+```
 ## Calling convention lowering
 LEGCallingConv.td生成函数，用于ISelLowering.
 ```
