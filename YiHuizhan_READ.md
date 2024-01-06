@@ -103,6 +103,43 @@ Machine Branch Probability Analysis
       Machine Natural Loop Construction
       LEG Assembly Printer
 ```
+## 后端PASS的处理
+```
+#0  addPassesToGenerateCode (TM=0x555555f0769c <llvm::legacy::PassManagerImpl::add(llvm::Pass*)+46>, PM=..., DisableVerify=85,
+    StartAfter=0x555555f0d536 <llvm::legacy::PassManager::add(llvm::Pass*)>, StopAfter=0x1a4c24c8ec303600)
+    at /home/yhz/llvm-leg/lib/CodeGen/LLVMTargetMachine.cpp:88
+#1  0x0000555555b2b7f0 in llvm::LLVMTargetMachine::addPassesToEmitFile (this=0x555556bc7380, PM=..., Out=...,
+    FileType=llvm::TargetMachine::CGFT_AssemblyFile, DisableVerify=false, StartAfter=0x0, StopAfter=0x0)
+    at /home/yhz/llvm-leg/lib/CodeGen/LLVMTargetMachine.cpp:150
+#2  0x0000555555a02813 in compileModule (argv=0x7fffffffe028, Context=...) at /home/yhz/llvm-leg/tools/llc/llc.cpp:341
+#3  0x0000555555a01a21 in main (argc=6, argv=0x7fffffffe028) at /home/yhz/llvm-leg/tools/llc/llc.cpp:199
+```
+llc.cpp
+```
+242   const Target *TheTarget = TargetRegistry::lookupTarget(MArch, TheTriple,
+243                                                          Error);
+
+276   std::unique_ptr<TargetMachine> target(
+277       TheTarget->createTargetMachine(TheTriple.getTriple(), MCPU, FeaturesStr,
+278                                      Options, RelocModel, CMModel, OLvl));
+
+288   TargetMachine &Target = *target.get();
+取目标平台的TargetMachine
+
+340     // Ask the target to add backend passes as necessary.
+341     if (Target.addPassesToEmitFile(PM, FOS, FileType, NoVerify,
+342                                    StartAfterID, StopAfterID)) {
+```
+lib/CodeGen/LLVMTargetMachine.cpp
+```
+138 bool LLVMTargetMachine::addPassesToEmitFile(PassManagerBase &PM,
+139                                             formatted_raw_ostream &Out,
+140                                             CodeGenFileType FileType,
+141                                             bool DisableVerify,
+142                                             AnalysisID StartAfter,
+143                                             AnalysisID StopAfter) {
+```
+
 ## Calling convention lowering
 LEGCallingConv.td生成函数，用于ISelLowering.
 ```
