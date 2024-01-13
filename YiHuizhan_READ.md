@@ -1164,6 +1164,26 @@ MCInst的操作码和MachineInstr的操作码相同
 133   }
 134 }
 ```
+对应的这个类用在了LEGAsmPrinter.cpp，就是对应的最后的LEG Assembly Printer
+```
+ 50 class LEGAsmPrinter : public AsmPrinter {
+ 51   const LEGSubtarget &Subtarget;
+ 52   LEGMCInstLower MCInstLowering;
+ 53
+ 54 public:
+ 55   explicit LEGAsmPrinter(TargetMachine &TM, MCStreamer &Streamer)
+ 56       : AsmPrinter(TM, Streamer), Subtarget(TM.getSubtarget<LEGSubtarget>()),
+ 57         MCInstLowering(*this) {}
+ 58
+遍名字
+ 59   virtual const char *getPassName() const { return "LEG Assembly Printer"; }
+ 60
+override继承的函数
+ 61   void EmitFunctionEntryLabel();
+ 62   void EmitInstruction(const MachineInstr *MI);
+ 63   void EmitFunctionBodyStart();
+ 64 };
+```
 
 ### InstPrinter
 在目录InstPrinter，LEGInstPrinter.h注释，用于打印LEG MCInst到s文件
