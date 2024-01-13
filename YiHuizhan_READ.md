@@ -1150,13 +1150,6 @@ def addr : ComplexPattern<iPTR, 2, "SelectAddr", [], []>;
  40   void printMemOperand(const MCInst *MI, int opNum, raw_ostream &O);
  41 };
 ```
-```
-def memsrc : Operand<i32> {
-  let MIOperandInfo = (ops GRRegs, i32imm);
-  let PrintMethod = "printAddrModeMemSrc";
-  let EncoderMethod = "getMemSrcValue";
-}
-```
 LEGInstPrinter.cpp
 ```
  25 #include "LEGGenAsmWriter.inc"
@@ -1178,6 +1171,7 @@ MCInst定义在include/llvm/MC/MCInst.h
 
 打印MCExpr，MCExpr定义在include/llvm/MC/MCExpr.h
 ```
+这是一个内部函数，由printOperand调用
  37 static void printExpr(const MCExpr *Expr, raw_ostream &OS) {
  38   int Offset = 0;
  39   const MCSymbolRefExpr *SRE;
@@ -1204,6 +1198,31 @@ MCInst定义在include/llvm/MC/MCInst.h
  60     OS << Offset;
  61   }
  62 }
+```
+打印MEM访问类操作数,输出格式ldr r4, \[sp, \#4\]
+```
+ 64 // Print a 'memsrc' operand which is a (Register, Offset) pair.
+ 65 void LEGInstPrinter::printAddrModeMemSrc(const MCInst *MI, unsigned OpNum,
+ 66                                          raw_ostream &O) {
+ 67   const MCOperand &Op1 = MI->getOperand(OpNum);
+ 68   const MCOperand &Op2 = MI->getOperand(OpNum + 1);
+ 69   O << "[";
+ 70   printRegName(O, Op1.getReg());
+ 71
+ 72   unsigned Offset = Op2.getImm();
+ 73   if (Offset) {
+ 74     O << ", #" << Offset;
+ 75   }
+ 76   O << "]";
+ 77 }
+```
+这个函数作为下面memsrc操作数类型定义的PrintMethod
+```
+ 51 def memsrc : Operand<i32> {
+ 52   let MIOperandInfo = (ops GRRegs, i32imm);
+ 53   let PrintMethod = "printAddrModeMemSrc";
+ 54   let EncoderMethod = "getMemSrcValue";
+ 55 }
 ```
 
 
