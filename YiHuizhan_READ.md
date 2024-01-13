@@ -103,7 +103,7 @@ Machine Branch Probability Analysis
       Machine Natural Loop Construction
       LEG Assembly Printer
 ```
-## 后端PASS的处理
+### 后端PASS的处理
 ```
 #0  addPassesToGenerateCode (TM=0x555555f0769c <llvm::legacy::PassManagerImpl::add(llvm::Pass*)+46>, PM=..., DisableVerify=85,
     StartAfter=0x555555f0d536 <llvm::legacy::PassManager::add(llvm::Pass*)>, StopAfter=0x1a4c24c8ec303600)
@@ -198,7 +198,7 @@ LEG有自己的TargetPassConfig定义，相应的可以定制一些pass
 ```
 addMachinePasses增加的pass一直到“StackMap Liveness Analysis”，之后就到了Printer遍。也就是之前所有的Pass都是MachineInstr表示，在Printer时才转化为MCInst表示。
 而Instruction Selection之前增加了一个MachineFunctionAnalysis遍，生成MachineFunction，管理整个代码生成过程。
-## Target调用和初始化
+### Target调用和初始化
 llc.cpp
 ```
 166 int main(int argc, char **argv) {
