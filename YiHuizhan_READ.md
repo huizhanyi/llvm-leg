@@ -1119,7 +1119,7 @@ def addr : ComplexPattern<iPTR, 2, "SelectAddr", [], []>;
  96   return Move;
  97 }
 ```
-### LEGMCInstLower
+### LEGAsmPrinter
 LEGMCInstLower用来把MachineInstr lower到MCInst类
 整体看是把不同层次表示lower
 ```
@@ -1185,7 +1185,7 @@ override继承的函数
  64 };
 ```
 
-### InstPrinter
+#### InstPrinter
 在目录InstPrinter，LEGInstPrinter.h注释，用于打印LEG MCInst到s文件
 ```
  24 class LEGInstPrinter : public MCInstPrinter {
@@ -1318,7 +1318,7 @@ MCInst定义在include/llvm/MC/MCInst.h
  94 }
 ```
 
-### MCTargetDesc
+#### MCTargetDesc
 
 
 
