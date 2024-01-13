@@ -1224,6 +1224,33 @@ MCInst定义在include/llvm/MC/MCInst.h
  54   let EncoderMethod = "getMemSrcValue";
  55 }
 ```
+通过操作数打印函数
+```
+ 590 class Operand<ValueType ty> : DAGOperand {
+ 591   ValueType Type = ty;
+ 592   string PrintMethod = "printOperand";
+```
+```
+ 79 void LEGInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
+ 80                                   raw_ostream &O) {
+ 81   const MCOperand &Op = MI->getOperand(OpNo);
+如果是寄存器，则调用寄存器打印
+ 82   if (Op.isReg()) {
+ 83     printRegName(O, Op.getReg());
+ 84     return;
+ 85   }
+ 86
+如果是立即数，打印#立即数
+ 87   if (Op.isImm()) {
+ 88     O << "#" << Op.getImm();
+ 89     return;
+ 90   }
+ 91
+ 92   assert(Op.isExpr() && "unknown operand kind in printOperand");
+否则使用printExpr打印
+ 93   printExpr(Op.getExpr(), O);
+ 94 }
+```
 
 
 
