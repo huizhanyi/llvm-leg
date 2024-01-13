@@ -277,7 +277,7 @@ extern "C" void LLVMInitializeLEGAsmPrinter() {
 上述过程把所有目标相关的数据关联到Target,登记PASS时可以使用这些数据。
 #### 整体上看是 初始化共享的数据结构Target -> 登记PASS关联到这些数据
 
-## Calling convention lowering
+### Calling convention lowering
 LEGCallingConv.td生成函数，用于ISelLowering.
 ```
 这里会生成C++函数RetCC_LEG供LEGISelLowering调用
@@ -335,7 +335,7 @@ enum {
 };
 ```
 主要文件位于LEGISelLowering.h/cpp
-### LowerFormalArguments
+#### LowerFormalArguments
 根据后面的分析，主要完成对入参数据的使用，生成对寄存器的拷贝或者对栈变量的加载操作。
 SelectionDAGISel::runOnMachineFunction -> SelectionDAGISel::SelectAllBasicBlocks (entry block) -> SelectionDAGISel::LowerArguments -> LEGTargetLowering::LowerFormalArguments
 ```
@@ -426,7 +426,7 @@ BB#0: derived from LLVM BB %entry
         %R0<def> = COPY %vreg8; GRRegs:%vreg8
         RET %R0, %LR<imp-use>
 ```
-### LowerReturn
+#### LowerReturn
 钩子函数，检查返回值outs是否能够放到返回寄存器中。如果返回假，需要完成sret-demotion。
 ```
 296 bool LEGTargetLowering::CanLowerReturn(
@@ -515,7 +515,7 @@ BB#0: derived from LLVM BB %entry
         RET %R0, %LR<imp-use>
 ```
 这里RET使用了%R0寄存器和%LR寄存器
-### LowerCall
+#### LowerCall
 当函数被调用时，需要调用前所有实参拷贝到正确位置，调用结束把返回值拷贝到指定的虚寄存器。整个过程由CALLSEQ_BEGIN和CALLSEQ_END节点围绕到一起。在指令选择节点这些节点变换为ADJCALLSTACKDOWN和ADJCALLSTACKUP伪指令。函数调用由LowerCall函数处理，生成恰当的SDValues链。
 LEGISelLowering.cpp
 ```
