@@ -1119,6 +1119,52 @@ def addr : ComplexPattern<iPTR, 2, "SelectAddr", [], []>;
  96   return Move;
  97 }
 ```
+### LEGMCInstLower
+LEGMCInstLower用来把MachineInstr lower到MCInst类
+整体看是把不同层次表示lower
+```
+ 25 class LLVM_LIBRARY_VISIBILITY LEGMCInstLower {
+ 26   typedef MachineOperand::MachineOperandType MachineOperandType;
+ 27   MCContext *Ctx;
+ 28   Mangler *Mang;
+ 29   AsmPrinter &Printer;
+ 30
+ 31 public:
+constructor函数
+ 32   LEGMCInstLower(class AsmPrinter &asmprinter);
+初始化函数
+ 33   void Initialize(Mangler *mang, MCContext *C);
+MachineInstr到MCInst的转化
+ 34   void Lower(const MachineInstr *MI, MCInst &OutMI) const;
+操作数转化
+ 35   MCOperand LowerOperand(const MachineOperand &MO, unsigned offset = 0) const;
+ 36
+ 37 private:
+特殊的SymbolOperand的转化
+ 38   MCOperand LowerSymbolOperand(const MachineOperand &MO,
+ 39                                MachineOperandType MOTy, unsigned Offset) const;
+ 40 };
+```
+LEGMCInstLower.cpp
+定义
+指令的lower
+```
+124 void LEGMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
+MCInst的操作码和MachineInstr的操作码相同
+125   OutMI.setOpcode(MI->getOpcode());
+126
+127   for (auto &MO : MI->operands()) {
+逐个处理每个操作数
+128     const MCOperand MCOp = LowerOperand(MO);
+129
+如果处理成功，则加到MCInst指令上
+130     if (MCOp.isValid()) {
+131       OutMI.addOperand(MCOp);
+132     }
+133   }
+134 }
+```
+
 ### InstPrinter
 在目录InstPrinter，LEGInstPrinter.h注释，用于打印LEG MCInst到s文件
 ```
