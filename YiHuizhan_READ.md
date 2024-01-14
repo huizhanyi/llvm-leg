@@ -1349,7 +1349,21 @@ MCInst定义在include/llvm/MC/MCInst.h
 ```
 
 #### MCTargetDesc
-
+LEGBaseInfo.h
+定义了几个LEG具体的标志
+LEGFixupKinds.h
+定义Target specific fixup，这里只定义了1个fixup_leg_mov_lo16_pcrel
+```
+ 16 namespace LEG {
+ 17 enum Fixups {
+ 18   fixup_leg_mov_hi16_pcrel = FirstTargetFixupKind,
+ 19   fixup_leg_mov_lo16_pcrel,
+ 20
+ 21   // Marker
+ 22   LastTargetFixupKind,
+ 23   NumTargetFixupKinds = LastTargetFixupKind - FirstTargetFixupKind
+ 24 };
+```
 
 
 
