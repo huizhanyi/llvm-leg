@@ -1184,7 +1184,36 @@ override继承的函数
  63   void EmitFunctionBodyStart();
  64 };
 ```
-
+```
+函数的第一个基本块之前执行
+ 67 void LEGAsmPrinter::EmitFunctionBodyStart() {
+ 68   MCInstLowering.Initialize(Mang, &MF->getContext());
+ 69 }
+输出函数入口标号
+ 71 void LEGAsmPrinter::EmitFunctionEntryLabel() {
+ 72   OutStreamer.EmitLabel(CurrentFnSym);
+ 73 }
+这里看，从MachineInstr到MCInst完成Lower后，马上就执行了指令的Emit
+ 75 void LEGAsmPrinter::EmitInstruction(const MachineInstr *MI) {
+ 76   MCInst TmpInst;
+ 77   MCInstLowering.Lower(MI, TmpInst);
+ 78
+这里的OutStreamer是MCStreamer的子类MCAsmStreamer类型
+这里Emit实际上调用了InstPrinter，输出MCInst。
+ 79   EmitToStreamer(OutStreamer, TmpInst);
+ 80 }
+```
+分析AsmPrinter的调用过程,入口函数为runOnMachineFunction
+```
+184     SetupMachineFunction(MF);
+185     EmitFunctionHeader();
+186     EmitFunctionBody();
+```
+```
+EmitFunctionHeader -> EmitFunctionEntryLabel
+EmitFunctionBody   -> EmitFunctionBodyStart
+                   -> EmitInstruction
+```
 #### InstPrinter
 在目录InstPrinter，LEGInstPrinter.h注释，用于打印LEG MCInst到s文件
 ```
