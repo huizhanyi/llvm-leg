@@ -1,8 +1,11 @@
+后端参考资料：https://github.com/lowRISC/riscv-llvm/tree/master/docs
+```
 ~/build-llvm-leg/bin/clang -target leg-unknown-unknown -O1 -emit-llvm -S ex2.c
 ~/build-llvm-leg/bin/llc -march leg -debug-only=isel ex2.ll
 ~/build-llvm-leg/bin/llc -march leg -print-after-all ex2.ll  -relocation-model=pic -filetype=asm -o -
 ~/build-llvm-leg/bin/llc -march leg -print-after-all ex2.ll
 ~/build-llvm-leg/bin/llc -march leg -view-dag-combine1-dags ex2.ll
+```
 ```
 ~/build-llvm-leg/bin/llc -march leg -debug-pass=Structure ex2.ll
 Pass Arguments:  -targetlibinfo -datalayout -jump-instr-table-info -targetpassconfig -no-aa -tbaa -scoped-noalias -assumption-tracker -basicaa -notti -collector-metadata -machinemoduleinfo -machine-branch-prob -jump-instr-tables -verify -verify-di -domtree -loops -loop-simplify -scalar-evolution -iv-users -loop-reduce -gc-lowering -unreachableblockelim -consthoist -partially-inline-libcalls -codegenprepare -lowerinvoke -unreachableblockelim -verify-di -stack-protector -verify -domtree -loops -branch-prob -expand-isel-pseudos -tailduplication -opt-phis -machinedomtree -slotindexes -stack-coloring -localstackalloc -dead-mi-elimination -machinedomtree -machine-loops -machinelicm -machine-cse -machinepostdomtree -machine-block-freq -machine-sink -peephole-opts -dead-mi-elimination -processimpdefs -unreachable-mbb-elimination -livevars -machinedomtree -machine-loops -phi-node-elimination -twoaddressinstruction -slotindexes -liveintervals -simple-register-coalescing -machine-block-freq -livedebugvars -livestacks -virtregmap -liveregmatrix -edge-bundles -spill-code-placement -virtregrewriter -stack-slot-coloring -machinelicm -prologepilog -machine-block-freq -branch-folder -tailduplication -machine-cp -postrapseudos -machinedomtree -machine-loops -post-RA-sched -gc-analysis -machine-block-freq -block-placement2 -stackmap-liveness -machinedomtree -machine-loops
@@ -1353,6 +1356,9 @@ LEGBaseInfo.h
 定义了几个LEG具体的标志
 LEGFixupKinds.h
 定义Target specific fixup，这里只定义了1个fixup_leg_mov_lo16_pcrel
+参考一下：
+https://www.embecosm.com/appnotes/ean10/html/ch06s02.html
+https://github.com/lowRISC/riscv-llvm/blob/master/docs/06-relocations-and-fixups.mkd
 ```
  16 namespace LEG {
  17 enum Fixups {
@@ -1364,6 +1370,63 @@ LEGFixupKinds.h
  23   NumTargetFixupKinds = LastTargetFixupKind - FirstTargetFixupKind
  24 };
 ```
+LEGAsmBackend.cpp
+看注释是汇编器后端，目前LEG还不能通过汇编文件生成目标文件
+```
+用于输出ELF文件，这个类有重复定义
+ 33 class LEGELFObjectWriter : public MCELFObjectTargetWriter {
+ 34 public:
+ 35   LEGELFObjectWriter(uint8_t OSABI)
+ 36       : MCELFObjectTargetWriter(/*Is64Bit*/ false, OSABI, /*ELF::EM_LEG*/ ELF::EM_ARM,
+ 37                                 /*HasRelocationAddend*/ false) {}
+ 38 };
+```
+```
+汇编器后端
+ 40 class LEGAsmBackend : public MCAsmBackend {
+ 41 public:
+ 42   LEGAsmBackend(const Target &T, const StringRef TT) : MCAsmBackend() {}
+
+ 50   const MCFixupKindInfo &getFixupKindInfo(MCFixupKind Kind) const override {
+ 51     const static MCFixupKindInfo Infos[LEG::NumTargetFixupKinds] = {
+ 52       // This table *must* be in the order that the fixup_* kinds are defined in
+ 53       // LEGFixupKinds.h.
+ 54       //
+ 55       // Name                      Offset (bits) Size (bits)     Flags
+ 56       { "fixup_leg_mov_hi16_pcrel", 0, 32, MCFixupKindInfo::FKF_IsPCRel },
+ 57       { "fixup_leg_mov_lo16_pcrel", 0, 32, MCFixupKindInfo::FKF_IsPCRel },
+ 58     };
+```
+调整值，这里调整mov16指令的操作数
+```
+100 static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
+101                                  MCContext *Ctx = NULL) {
+102   unsigned Kind = Fixup.getKind();
+103   switch (Kind) {
+104   default:
+105     llvm_unreachable("Unknown fixup kind!");
+如果是hi16的数据，需要把value移到低16位
+106   case LEG::fixup_leg_mov_hi16_pcrel:
+107     Value >>= 16;
+108   // Intentional fall-through
+不管是hi16还是lo16，都要把Lo12放在低12，把hi4放到inst{19-16}，这决定于指令编码
+109   case LEG::fixup_leg_mov_lo16_pcrel:
+110     unsigned Hi4  = (Value & 0xF000) >> 12;
+111     unsigned Lo12 = Value & 0x0FFF;
+112     // inst{19-16} = Hi4;
+113     // inst{11-0} = Lo12;
+114     Value = (Hi4 << 16) | (Lo12);
+115     return Value;
+116   }
+117   return Value;
+118 }
+```
+LEGMCAsmInfo.h/cpp
+汇编属性信息定义
+
+LEGELFObjectWriter.cpp
+ELF Writer
+
 
 
 
