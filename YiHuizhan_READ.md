@@ -1211,6 +1211,7 @@ override继承的函数
 ```
 ```
 EmitFunctionHeader -> EmitFunctionEntryLabel
+这里遍历函数中的所有结构，发射指令等相关的内容
 EmitFunctionBody   -> EmitFunctionBodyStart
                    -> EmitInstruction
 ```
