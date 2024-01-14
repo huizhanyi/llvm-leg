@@ -1219,6 +1219,7 @@ EmitFunctionBody   -> EmitFunctionBodyStart
                    -> EmitInstruction
 ```
 #### InstPrinter
+MC描述参考：https://blog.llvm.org/2010/04/intro-to-llvm-mc-project.html
 在目录InstPrinter，LEGInstPrinter.h注释，用于打印LEG MCInst到s文件
 ```
  24 class LEGInstPrinter : public MCInstPrinter {
