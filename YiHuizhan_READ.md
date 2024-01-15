@@ -1427,6 +1427,33 @@ LEGMCAsmInfo.h/cpp
 
 LEGELFObjectWriter.cpp
 ELF Writer
+LEGMCCodeEmitter.cpp
+生成指令的机器编码
+```
+ 34 class LEGMCCodeEmitter : public MCCodeEmitter {
+ 35   LEGMCCodeEmitter(const LEGMCCodeEmitter &) LLVM_DELETED_FUNCTION;
+ 36   void operator=(const LEGMCCodeEmitter &) LLVM_DELETED_FUNCTION;
+ 37   const MCInstrInfo &MCII;
+ 38   const MCContext &CTX;
+由TableGen生成，取指令的二进制编码
+ 46   // getBinaryCodeForInstr - TableGen'erated function for getting the
+ 47   // binary encoding for an instruction.
+ 48   uint64_t getBinaryCodeForInstr(const MCInst &MI,
+ 49                                  SmallVectorImpl<MCFixup> &Fixups,
+ 50                                  const MCSubtargetInfo &STI) const;
+ 51
+每个操作数调用这个函数，返回操作数二进制编码。如果需要relocation，记录Fixups，返回0
+ 52   /// getMachineOpValue - Return binary encoding of operand. If the machine
+ 53   /// operand requires relocation, record the relocation and return zero.
+ 54   unsigned getMachineOpValue(const MCInst &MI, const MCOperand &MO,
+ 55                              SmallVectorImpl<MCFixup> &Fixups,
+ 56                              const MCSubtargetInfo &STI) const;
+取memsrc类型的二进制编码
+ 58   unsigned getMemSrcValue(const MCInst &MI, unsigned OpIdx,
+ 59                           SmallVectorImpl<MCFixup> &Fixups,
+ 60                           const MCSubtargetInfo &STI) const;
+
+```
 
 
 
