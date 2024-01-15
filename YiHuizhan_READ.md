@@ -1430,7 +1430,7 @@ LEGMCCodeEmitter.cpp
 ```
 
 LEGFixupKinds.h
-定义Target specific fixup，这里只定义了1个fixup_leg_mov_lo16_pcrel
+定义Target specific fixup
 参考一下：
 https://www.embecosm.com/appnotes/ean10/html/ch06s02.html
 https://github.com/lowRISC/riscv-llvm/blob/master/docs/06-relocations-and-fixups.mkd
@@ -1447,15 +1447,7 @@ https://github.com/lowRISC/riscv-llvm/blob/master/docs/06-relocations-and-fixups
 ```
 LEGAsmBackend.cpp
 看注释是汇编器后端，目前LEG还不能通过汇编文件生成目标文件
-```
-用于输出ELF文件，这个类有重复定义
- 33 class LEGELFObjectWriter : public MCELFObjectTargetWriter {
- 34 public:
- 35   LEGELFObjectWriter(uint8_t OSABI)
- 36       : MCELFObjectTargetWriter(/*Is64Bit*/ false, OSABI, /*ELF::EM_LEG*/ ELF::EM_ARM,
- 37                                 /*HasRelocationAddend*/ false) {}
- 38 };
-```
+这里主要定义是处理Fixup，在section处理结束时，section布局已经确定
 ```
 汇编器后端
  40 class LEGAsmBackend : public MCAsmBackend {
