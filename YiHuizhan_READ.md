@@ -1355,6 +1355,80 @@ MCInst定义在include/llvm/MC/MCInst.h
 #### MCTargetDesc
 LEGBaseInfo.h
 定义了几个LEG具体的标志
+
+LEGMCAsmInfo.h/cpp
+汇编属性信息定义
+
+LEGELFObjectWriter.cpp
+ELF Writer
+LEGMCCodeEmitter.cpp
+生成指令的机器编码
+```
+ 34 class LEGMCCodeEmitter : public MCCodeEmitter {
+ 35   LEGMCCodeEmitter(const LEGMCCodeEmitter &) LLVM_DELETED_FUNCTION;
+ 36   void operator=(const LEGMCCodeEmitter &) LLVM_DELETED_FUNCTION;
+ 37   const MCInstrInfo &MCII;
+ 38   const MCContext &CTX;
+由TableGen生成，取指令的二进制编码
+ 46   // getBinaryCodeForInstr - TableGen'erated function for getting the
+ 47   // binary encoding for an instruction.
+ 48   uint64_t getBinaryCodeForInstr(const MCInst &MI,
+ 49                                  SmallVectorImpl<MCFixup> &Fixups,
+ 50                                  const MCSubtargetInfo &STI) const;
+ 51
+每个操作数调用这个函数，返回操作数二进制编码。如果需要relocation，记录Fixups，返回0
+ 52   /// getMachineOpValue - Return binary encoding of operand. If the machine
+ 53   /// operand requires relocation, record the relocation and return zero.
+ 54   unsigned getMachineOpValue(const MCInst &MI, const MCOperand &MO,
+ 55                              SmallVectorImpl<MCFixup> &Fixups,
+ 56                              const MCSubtargetInfo &STI) const;
+取memsrc类型的二进制编码
+ 58   unsigned getMemSrcValue(const MCInst &MI, unsigned OpIdx,
+ 59                           SmallVectorImpl<MCFixup> &Fixups,
+ 60                           const MCSubtargetInfo &STI) const;
+
+ 86 /// getMachineOpValue - Return binary encoding of operand. If the machine
+ 87 /// operand requires relocation, record the relocation and return zero.
+ 88 unsigned LEGMCCodeEmitter::getMachineOpValue(const MCInst &MI,
+ 89                                              const MCOperand &MO,
+ 90                                              SmallVectorImpl<MCFixup> &Fixups,
+ 91                                              const MCSubtargetInfo &STI) const {
+110   assert (Kind == MCExpr::SymbolRef);
+111
+112   unsigned FixupKind;
+113   switch (cast<MCSymbolRefExpr>(Expr)->getKind()) {
+114   default:
+115     llvm_unreachable("Unknown fixup kind!");
+116   case MCSymbolRefExpr::VK_LEG_LO: {
+117     FixupKind = LEG::fixup_leg_mov_lo16_pcrel;
+118     break;
+119   }
+120   case MCSymbolRefExpr::VK_LEG_HI: {
+121     FixupKind = LEG::fixup_leg_mov_hi16_pcrel;
+122     break;
+123   }
+124   }
+125
+生成LEG::fixup_leg_mov_lo16_pcrel和LEG::fixup_leg_mov_hi16_pcrel的Fixups类型。LLVM会跟踪Fixups，后面处理。
+126   Fixups.push_back(MCFixup::Create(0, MO.getExpr(), MCFixupKind(FixupKind)));
+
+
+生成1条指令的编码
+142 void LEGMCCodeEmitter::EncodeInstruction(const MCInst &MI, raw_ostream &OS,
+143                                          SmallVectorImpl<MCFixup> &Fixups,
+144                                          const MCSubtargetInfo &STI) const {
+145   const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
+146   if (Desc.getSize() != 4) {
+147     llvm_unreachable("Unexpected instruction size!");
+148   }
+149
+150   const uint32_t Binary = getBinaryCodeForInstr(MI, Fixups, STI);
+151
+152   EmitConstant(Binary, Desc.getSize(), OS);
+153   ++MCNumEmitted;
+154 }
+```
+
 LEGFixupKinds.h
 定义Target specific fixup，这里只定义了1个fixup_leg_mov_lo16_pcrel
 参考一下：
@@ -1421,54 +1495,6 @@ LEGAsmBackend.cpp
 116   }
 117   return Value;
 118 }
-```
-LEGMCAsmInfo.h/cpp
-汇编属性信息定义
-
-LEGELFObjectWriter.cpp
-ELF Writer
-LEGMCCodeEmitter.cpp
-生成指令的机器编码
-```
- 34 class LEGMCCodeEmitter : public MCCodeEmitter {
- 35   LEGMCCodeEmitter(const LEGMCCodeEmitter &) LLVM_DELETED_FUNCTION;
- 36   void operator=(const LEGMCCodeEmitter &) LLVM_DELETED_FUNCTION;
- 37   const MCInstrInfo &MCII;
- 38   const MCContext &CTX;
-由TableGen生成，取指令的二进制编码
- 46   // getBinaryCodeForInstr - TableGen'erated function for getting the
- 47   // binary encoding for an instruction.
- 48   uint64_t getBinaryCodeForInstr(const MCInst &MI,
- 49                                  SmallVectorImpl<MCFixup> &Fixups,
- 50                                  const MCSubtargetInfo &STI) const;
- 51
-每个操作数调用这个函数，返回操作数二进制编码。如果需要relocation，记录Fixups，返回0
- 52   /// getMachineOpValue - Return binary encoding of operand. If the machine
- 53   /// operand requires relocation, record the relocation and return zero.
- 54   unsigned getMachineOpValue(const MCInst &MI, const MCOperand &MO,
- 55                              SmallVectorImpl<MCFixup> &Fixups,
- 56                              const MCSubtargetInfo &STI) const;
-取memsrc类型的二进制编码
- 58   unsigned getMemSrcValue(const MCInst &MI, unsigned OpIdx,
- 59                           SmallVectorImpl<MCFixup> &Fixups,
- 60                           const MCSubtargetInfo &STI) const;
-
-生成1条指令的编码
-142 void LEGMCCodeEmitter::EncodeInstruction(const MCInst &MI, raw_ostream &OS,
-143                                          SmallVectorImpl<MCFixup> &Fixups,
-144                                          const MCSubtargetInfo &STI) const {
-145   const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
-146   if (Desc.getSize() != 4) {
-147     llvm_unreachable("Unexpected instruction size!");
-148   }
-149
-150   const uint32_t Binary = getBinaryCodeForInstr(MI, Fixups, STI);
-151
-152   EmitConstant(Binary, Desc.getSize(), OS);
-153   ++MCNumEmitted;
-154 }
-
-
 ```
 
 
