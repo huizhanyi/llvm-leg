@@ -1,4 +1,4 @@
-后端参考资料：https://github.com/lowRISC/riscv-llvm/tree/master/docs
+后端参考资料：https://maskray.me/blog/2023-09-24-a-deep-dive-into-clang-source-file-compilation
 ```
 ~/build-llvm-leg/bin/clang -target leg-unknown-unknown -O1 -emit-llvm -S ex2.c
 ~/build-llvm-leg/bin/llc -march leg -debug-only=isel ex2.ll
@@ -1359,8 +1359,6 @@ LEGBaseInfo.h
 LEGMCAsmInfo.h/cpp
 汇编属性信息定义
 
-LEGELFObjectWriter.cpp
-ELF Writer
 LEGMCCodeEmitter.cpp
 生成指令的机器编码
 ```
@@ -1488,7 +1486,8 @@ LEGAsmBackend.cpp
 117   return Value;
 118 }
 ```
-
+LEGELFObjectWriter.cpp
+ELF Writer
 
 
 
