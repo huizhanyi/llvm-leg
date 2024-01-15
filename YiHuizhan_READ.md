@@ -1453,6 +1453,22 @@ LEGMCCodeEmitter.cpp
  59                           SmallVectorImpl<MCFixup> &Fixups,
  60                           const MCSubtargetInfo &STI) const;
 
+生成1条指令的编码
+142 void LEGMCCodeEmitter::EncodeInstruction(const MCInst &MI, raw_ostream &OS,
+143                                          SmallVectorImpl<MCFixup> &Fixups,
+144                                          const MCSubtargetInfo &STI) const {
+145   const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
+146   if (Desc.getSize() != 4) {
+147     llvm_unreachable("Unexpected instruction size!");
+148   }
+149
+150   const uint32_t Binary = getBinaryCodeForInstr(MI, Fixups, STI);
+151
+152   EmitConstant(Binary, Desc.getSize(), OS);
+153   ++MCNumEmitted;
+154 }
+
+
 ```
 
 
