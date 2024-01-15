@@ -1492,7 +1492,7 @@ ELF Writer
 如果输出Asm文件，涉及的类包括
 LEGAsmPrinter （整个PASS入口） - LEGMCInstLower（MachineInstr到MCInst转化） -  MCAsmStreamer（输出汇编Stream） - LEGInstPrinter（汇编打印）
 
-输出Object文件，设计类包括
+输出Object文件，涉及类包括
 LEGAsmPrinter （整个PASS入口） - LEGMCInstLower（MachineInstr到MCInst转化） - MCObjectStreamer (输出Object Stream) - LEGMCCodeEmitter（指令编码到二进制，部分输出需要fixup） - LEGAsmBackend(汇编器后端，具体LEG的包括Section结束，完成fixup) - LEGObjectWriter(和LEGAsmBackend协作发射object) 
 
 
